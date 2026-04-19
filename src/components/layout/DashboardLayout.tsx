@@ -4,18 +4,32 @@ import { Header } from './Header';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { Sprout } from 'lucide-react';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, initAuth } = useAuthStore();
+  const { isAuthenticated, initialized, initAuth } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
     initAuth();
-  }, [initAuth]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!isAuthenticated) router.push('/login');
-  }, [isAuthenticated, router]);
+    if (initialized && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [initialized, isAuthenticated, router]);
+
+  if (!initialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <div className="flex flex-col items-center gap-3">
+          <Sprout className="w-10 h-10 text-[var(--primary)] animate-pulse" />
+          <p className="text-[var(--muted)] text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) return null;
 

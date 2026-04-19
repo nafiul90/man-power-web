@@ -6,6 +6,7 @@ interface AuthState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
+  initialized: boolean;
   setUser: (user: User, token: string) => void;
   logout: () => void;
   initAuth: () => void;
@@ -15,6 +16,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   token: null,
   isAuthenticated: false,
+  initialized: false,
   setUser: (user, token) => {
     setAuth(token, user);
     set({ user, token, isAuthenticated: true });
@@ -26,6 +28,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   initAuth: () => {
     const user = getStoredUser();
     const token = getToken();
-    if (user && token) set({ user, token, isAuthenticated: true });
+    if (user && token) {
+      set({ user, token, isAuthenticated: true, initialized: true });
+    } else {
+      set({ initialized: true });
+    }
   },
 }));

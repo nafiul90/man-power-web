@@ -1,0 +1,16 @@
+import api from '@/lib/api';
+
+export interface GroupPayload {
+  title: string;
+  zone?: string;
+  category?: string;
+  members?: string[];
+}
+
+export const groupService = {
+  getAll: (params?: Record<string, string>) => api.get('/groups', { params }),
+  getById: (id: string) => api.get(`/groups/${id}`),
+  create: (data: GroupPayload) => api.post('/groups', data),
+  update: (id: string, data: Partial<GroupPayload>) => api.put(`/groups/${id}`, data),
+  delete: (id: string) => api.delete(`/groups/${id}`),
+};
