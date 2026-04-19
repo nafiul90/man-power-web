@@ -2,7 +2,9 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useState, useEffect } from 'react';
 import { User } from '@/lib/auth';
+import { groupService } from '@/services/group.service';
 
 const ROLES = ['Super Admin', 'Org Owner', 'Manager', 'Instructor', 'Accountant', 'Member'] as const;
 
@@ -13,6 +15,7 @@ const baseSchema = z.object({
   password: z.string().optional(),
   gender: z.enum(['Male', 'Female', 'Other']).optional(),
   role: z.enum(ROLES),
+  groupId: z.string().optional(),
 });
 
 type FormData = z.infer<typeof baseSchema>;
@@ -20,6 +23,8 @@ type FormData = z.infer<typeof baseSchema>;
 const inputClass =
   'w-full px-4 py-2.5 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all text-sm';
 const labelClass = 'block text-sm font-medium text-[var(--foreground)] mb-1.5';
+
+interface Group { _id: string; title: string }
 
 interface UserFormProps {
   user?: User | null;
@@ -29,6 +34,7 @@ interface UserFormProps {
 
 export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
   const isEdit = !!user;
+  const [groups, setGroups] = useState<Group[]>([]);
 
   const schema = isEdit
     ? baseSchema
@@ -50,6 +56,12 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
         }
       : { role: 'Member' },
   });
+
+  useEffect(() => {
+    groupService.getAll({ limit: '200' })
+      .then((r) => setGroups(r.data.data.groups))
+      .catch(() => {});
+  }, []);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -99,6 +111,16 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
           </select>
           {errors.role && <p className="text-red-500 text-xs mt-1">{errors.role.message}</p>}
         </div>
+      </div>
+
+      <div>
+        <label className={labelClass}>Assign to Group <span className="text-[var(--muted)] font-normal">(optional)</span></label>
+        <select {...register('groupId')} className={inputClass}>
+          <option value="">No group</option>
+          {groups.map((g) => (
+            <option key={g._id} value={g._id}>{g.title}</option>
+          ))}
+        </select>
       </div>
 
       <div className="pt-2 flex justify-end">

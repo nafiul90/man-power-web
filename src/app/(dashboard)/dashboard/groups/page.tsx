@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Edit, Trash2, UsersRound, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit, Trash2, UsersRound, Search, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 import { groupService, GroupPayload } from '@/services/group.service';
 import { categoryService } from '@/services/category.service';
 import { zoneService } from '@/services/zone.service';
@@ -246,6 +247,7 @@ export default function GroupsPage() {
                 </div>
               </div>
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Link href={`/dashboard/groups/${group._id}`} className="p-1.5 rounded-lg hover:bg-[var(--accent)] text-[var(--muted)] hover:text-green-600 transition-colors" title="View details"><ExternalLink className="w-3.5 h-3.5" /></Link>
                 <button onClick={() => openModal('edit', group)} className="p-1.5 rounded-lg hover:bg-[var(--accent)] text-[var(--muted)] hover:text-[var(--primary)] transition-colors"><Edit className="w-3.5 h-3.5" /></button>
                 <button onClick={() => openModal('delete', group)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-[var(--muted)] hover:text-red-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>

@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Edit, Trash2, Key, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Key, User, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 import { userService } from '@/services/user.service';
 import { User as UserType } from '@/lib/auth';
 import { RoleBadge, StatusBadge } from '@/components/ui/Badge';
@@ -228,6 +229,13 @@ export default function UsersPage() {
                             </button>
                           </>
                         )}
+                        <Link
+                          href={`/dashboard/users/${u._id}/profile`}
+                          className="p-1.5 rounded-lg hover:bg-[var(--accent)] text-[var(--muted)] hover:text-green-500 transition-colors"
+                          title="View profile"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </Link>
                         {isSuperAdmin && u.role !== 'Super Admin' && (
                           <button
                             onClick={() => openModal('delete', u)}

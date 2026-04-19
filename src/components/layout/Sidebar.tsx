@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, Building2, Tags, Map, MapPin,
   UsersRound, Wallet, Receipt, Settings, Leaf, LogOut,
-  ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, BookOpen, Award,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
@@ -35,6 +35,8 @@ const superAdminNav: NavItem[] = [
   },
   { href: '/dashboard/zones', label: 'Zones', icon: MapPin },
   { href: '/dashboard/groups', label: 'Groups', icon: UsersRound },
+  { href: '/dashboard/trainings', label: 'Trainings', icon: BookOpen },
+  { href: '/dashboard/certificates', label: 'Certificates', icon: Award },
 ];
 
 const orgOwnerNav: NavItem[] = [
@@ -54,6 +56,8 @@ const orgOwnerNav: NavItem[] = [
   },
   { href: '/dashboard/zones', label: 'Zones', icon: MapPin },
   { href: '/dashboard/groups', label: 'Groups', icon: UsersRound },
+  { href: '/dashboard/trainings', label: 'Trainings', icon: BookOpen },
+  { href: '/dashboard/certificates', label: 'Certificates', icon: Award },
 ];
 
 const defaultNav: NavItem[] = [
