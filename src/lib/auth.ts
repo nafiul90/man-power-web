@@ -6,6 +6,7 @@ export interface User {
   gender?: string;
   role: string;
   isActive: boolean;
+  org?: string | { _id: string; title: string } | null;
   createdAt: string;
 }
 

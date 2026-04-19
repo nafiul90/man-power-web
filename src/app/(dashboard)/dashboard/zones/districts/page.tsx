@@ -1,2 +1,2 @@
-import { ZoneList } from '@/components/zones/ZoneList';
-export default function DistrictsPage() { return <ZoneList type="District" />; }
+import { redirect } from 'next/navigation';
+export default function Page() { redirect('/dashboard/admin-areas/districts'); }

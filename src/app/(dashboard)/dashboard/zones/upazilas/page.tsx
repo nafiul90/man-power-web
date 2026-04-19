@@ -1,2 +1,2 @@
-import { ZoneList } from '@/components/zones/ZoneList';
-export default function UpazilasPage() { return <ZoneList type="Upazila" />; }
+import { redirect } from 'next/navigation';
+export default function Page() { redirect('/dashboard/admin-areas/upazilas'); }

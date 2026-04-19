@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Plus, Edit, Trash2, UsersRound, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { groupService, GroupPayload } from '@/services/group.service';
 import { categoryService } from '@/services/category.service';
@@ -25,6 +25,7 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
   const [zoneId, setZoneId] = useState(group?.zone?._id ?? '');
   const [categoryId, setCategoryId] = useState(group?.category?._id ?? '');
   const [selectedMembers, setSelectedMembers] = useState<string[]>(group?.members.map((m) => m._id) ?? []);
+  const [memberSearch, setMemberSearch] = useState('');
   const [zones, setZones] = useState<SimpleRef[]>([]);
   const [categories, setCategories] = useState<SimpleRef[]>([]);
   const [users, setUsers] = useState<(SimpleRef & { phone?: string })[]>([]);
@@ -35,16 +36,35 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
     Promise.all([
       zoneService.getAll({ limit: '500' }),
       categoryService.getAll({ limit: '200' }),
-      userService.getAll({ limit: '200' }),
+      userService.getAll({ limit: '500' }),
     ]).then(([zRes, cRes, uRes]) => {
-      setZones(zRes.data.data.zones.map((z: { _id: string; name: string }) => ({ _id: z._id, name: z.name })));
+      setZones(zRes.data.data.zones.map((z: { _id: string; title: string }) => ({ _id: z._id, title: z.title })));
       setCategories(cRes.data.data.categories.map((c: { _id: string; title: string }) => ({ _id: c._id, title: c.title })));
       setUsers(uRes.data.data.users.map((u: { _id: string; fullName: string; phone: string }) => ({ _id: u._id, fullName: u.fullName, phone: u.phone })));
     }).catch(() => {});
   }, []);
 
+  const filteredUsers = useMemo(() => {
+    if (!memberSearch.trim()) return users;
+    const q = memberSearch.toLowerCase();
+    return users.filter((u) =>
+      u.fullName?.toLowerCase().includes(q) || u.phone?.includes(q)
+    );
+  }, [users, memberSearch]);
+
+  const allFilteredSelected = filteredUsers.length > 0 && filteredUsers.every((u) => selectedMembers.includes(u._id));
+
   const toggleMember = (id: string) =>
     setSelectedMembers((prev) => prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]);
+
+  const toggleSelectAll = () => {
+    if (allFilteredSelected) {
+      setSelectedMembers((prev) => prev.filter((id) => !filteredUsers.some((u) => u._id === id)));
+    } else {
+      const toAdd = filteredUsers.map((u) => u._id).filter((id) => !selectedMembers.includes(id));
+      setSelectedMembers((prev) => [...prev, ...toAdd]);
+    }
+  };
 
   const handleSave = async () => {
     if (!title.trim()) return notify('error', 'Title is required.');
@@ -63,13 +83,11 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
         await groupService.create(payload);
         notify('success', 'Group created.');
       }
-      setTimeout(onSaved, 500);
+      setTimeout(onSaved, 400);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       notify('error', msg || 'Failed to save.');
-    } finally {
-      setSubmitting(false);
-    }
+    } finally { setSubmitting(false); }
   };
 
   return (
@@ -85,7 +103,7 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
             <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Zone</label>
             <select value={zoneId} onChange={(e) => setZoneId(e.target.value)} className={inputClass}>
               <option value="">Select zone</option>
-              {zones.map((z) => <option key={z._id} value={z._id}>{z.name}</option>)}
+              {zones.map((z) => <option key={z._id} value={z._id}>{z.title}</option>)}
             </select>
           </div>
           <div>
@@ -96,26 +114,49 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
             </select>
           </div>
         </div>
+
         <div>
-          <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
-            Members <span className="text-[var(--muted)] font-normal">({selectedMembers.length} selected)</span>
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-[var(--foreground)]">
+              Members <span className="text-[var(--muted)] font-normal">({selectedMembers.length} selected)</span>
+            </label>
+            {filteredUsers.length > 0 && (
+              <button type="button" onClick={toggleSelectAll} className="text-xs text-[var(--primary)] hover:underline font-medium">
+                {allFilteredSelected ? 'Deselect All' : 'Select All'}
+              </button>
+            )}
+          </div>
+          <div className="relative mb-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted)]" />
+            <input
+              value={memberSearch}
+              onChange={(e) => setMemberSearch(e.target.value)}
+              placeholder="Search members by name or phone..."
+              className="w-full pl-9 pr-4 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-xs"
+            />
+          </div>
           {users.length === 0 ? (
-            <p className="text-[var(--muted)] text-sm">No users available.</p>
+            <p className="text-[var(--muted)] text-sm text-center py-4">No users available.</p>
           ) : (
-            <div className="max-h-48 overflow-y-auto rounded-lg border border-[var(--card-border)] p-2 space-y-1">
-              {users.map((u) => (
-                <label key={u._id} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[var(--accent)] cursor-pointer transition-colors">
-                  <input type="checkbox" checked={selectedMembers.includes(u._id)} onChange={() => toggleMember(u._id)} className="w-4 h-4 accent-[var(--primary)]" />
-                  <div>
-                    <p className="text-sm font-medium text-[var(--foreground)]">{u.fullName}</p>
-                    <p className="text-xs text-[var(--muted)]">{u.phone}</p>
-                  </div>
-                </label>
-              ))}
+            <div className="max-h-52 overflow-y-auto rounded-lg border border-[var(--card-border)] divide-y divide-[var(--card-border)]">
+              {filteredUsers.length === 0 ? (
+                <p className="text-[var(--muted)] text-sm text-center py-4">No users match search.</p>
+              ) : filteredUsers.map((u) => {
+                const isSelected = selectedMembers.includes(u._id);
+                return (
+                  <label key={u._id} className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${isSelected ? 'bg-[var(--accent)]' : 'hover:bg-[var(--accent)]/50'}`}>
+                    <input type="checkbox" checked={isSelected} onChange={() => toggleMember(u._id)} className="w-4 h-4 accent-[var(--primary)] shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[var(--foreground)] truncate">{u.fullName}</p>
+                      <p className="text-xs text-[var(--muted)]">{u.phone}</p>
+                    </div>
+                  </label>
+                );
+              })}
             </div>
           )}
         </div>
+
         <div className="flex justify-end gap-3 pt-2">
           <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[var(--card-border)] text-sm hover:bg-[var(--accent)] transition-colors">Cancel</button>
           <button onClick={handleSave} disabled={submitting} className="px-6 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white rounded-lg text-sm font-semibold disabled:opacity-60 transition-all">
@@ -149,9 +190,7 @@ export default function GroupsPage() {
       setGroups(d.groups);
       setTotal(d.total);
       setPages(d.pages);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, [page, search]);
 
   useEffect(() => { fetchGroups(); }, [fetchGroups]);
@@ -167,11 +206,8 @@ export default function GroupsPage() {
       notify('success', 'Group deleted.');
       closeModal();
       fetchGroups();
-    } catch {
-      notify('error', 'Failed to delete group.');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch { notify('error', 'Failed to delete.'); }
+    finally { setSubmitting(false); }
   };
 
   return (
@@ -186,10 +222,12 @@ export default function GroupsPage() {
           <Plus className="w-4 h-4" /> Add Group
         </button>
       </div>
+
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)]" />
         <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search groups..." className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-sm" />
       </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? (
           <p className="col-span-full text-center py-12 text-[var(--muted)]">Loading...</p>
@@ -212,35 +250,34 @@ export default function GroupsPage() {
                 <button onClick={() => openModal('delete', group)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-[var(--muted)] hover:text-red-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
             </div>
-            <div className="space-y-1.5 mt-3">
+            <div className="space-y-1.5">
               {group.zone && (
-                <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
-                  <span className="w-14 shrink-0 font-medium">Zone:</span>
-                  <span className="bg-[var(--accent)] px-2 py-0.5 rounded text-[var(--primary)]">{group.zone.name}</span>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-[var(--muted)] w-16 shrink-0">Zone:</span>
+                  <span className="bg-[var(--accent)] px-2 py-0.5 rounded text-[var(--primary)] font-medium">{group.zone.title}</span>
                 </div>
               )}
               {group.category && (
-                <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
-                  <span className="w-14 shrink-0 font-medium">Category:</span>
-                  <span className="bg-[var(--accent)] px-2 py-0.5 rounded text-[var(--primary)]">{group.category.title}</span>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-[var(--muted)] w-16 shrink-0">Category:</span>
+                  <span className="bg-[var(--accent)] px-2 py-0.5 rounded text-[var(--primary)] font-medium">{group.category.title}</span>
                 </div>
               )}
             </div>
             {group.members.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-[var(--card-border)]">
-                <div className="flex flex-wrap gap-1">
-                  {group.members.slice(0, 3).map((m) => (
-                    <span key={m._id} className="text-xs bg-[var(--accent)] text-[var(--foreground)] px-2 py-0.5 rounded-full">{m.fullName}</span>
-                  ))}
-                  {group.members.length > 3 && (
-                    <span className="text-xs text-[var(--muted)]">+{group.members.length - 3} more</span>
-                  )}
-                </div>
+              <div className="mt-3 pt-3 border-t border-[var(--card-border)] flex flex-wrap gap-1">
+                {group.members.slice(0, 3).map((m) => (
+                  <span key={m._id} className="text-xs bg-[var(--accent)] text-[var(--foreground)] px-2 py-0.5 rounded-full">{m.fullName}</span>
+                ))}
+                {group.members.length > 3 && (
+                  <span className="text-xs text-[var(--muted)]">+{group.members.length - 3} more</span>
+                )}
               </div>
             )}
           </div>
         ))}
       </div>
+
       {pages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-[var(--muted)]">Page {page} of {pages}</p>
@@ -250,6 +287,7 @@ export default function GroupsPage() {
           </div>
         </div>
       )}
+
       <Modal isOpen={modal === 'create'} onClose={closeModal} title="Create Group" size="lg">
         <GroupFormModal onClose={closeModal} onSaved={() => { closeModal(); fetchGroups(); }} />
       </Modal>
@@ -257,10 +295,10 @@ export default function GroupsPage() {
         <GroupFormModal group={selected} onClose={closeModal} onSaved={() => { closeModal(); fetchGroups(); }} />
       </Modal>
       <Modal isOpen={modal === 'delete'} onClose={closeModal} title="Delete Group" size="sm">
-        <p className="text-[var(--muted)] text-sm mb-6">Delete group <strong className="text-[var(--foreground)]">&ldquo;{selected?.title}&rdquo;</strong>?</p>
+        <p className="text-[var(--muted)] text-sm mb-6">Delete <strong className="text-[var(--foreground)]">&ldquo;{selected?.title}&rdquo;</strong>?</p>
         <div className="flex justify-end gap-3">
           <button onClick={closeModal} className="px-4 py-2 rounded-lg border border-[var(--card-border)] text-sm hover:bg-[var(--accent)] transition-colors">Cancel</button>
-          <button onClick={handleDelete} disabled={submitting} className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium disabled:opacity-60 transition-colors">{submitting ? 'Deleting...' : 'Delete'}</button>
+          <button onClick={handleDelete} disabled={submitting} className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium disabled:opacity-60">{submitting ? 'Deleting...' : 'Delete'}</button>
         </div>
       </Modal>
     </div>

@@ -1,2 +1,2 @@
-import { ZoneList } from '@/components/zones/ZoneList';
-export default function UnionsPage() { return <ZoneList type="Union" />; }
+import { redirect } from 'next/navigation';
+export default function Page() { redirect('/dashboard/admin-areas/unions'); }
