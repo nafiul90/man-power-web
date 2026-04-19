@@ -60,6 +60,12 @@ const orgOwnerNav: NavItem[] = [
   { href: '/dashboard/certificates', label: 'Certificates', icon: Award },
 ];
 
+const instructorNav: NavItem[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/certificates', label: 'Certificates', icon: Award },
+  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+];
+
 const defaultNav: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
@@ -69,6 +75,7 @@ function getNavByRole(role: string): NavItem[] {
   switch (role) {
     case 'Super Admin': return superAdminNav;
     case 'Org Owner': return orgOwnerNav;
+    case 'Instructor': return instructorNav;
     default: return defaultNav;
   }
 }

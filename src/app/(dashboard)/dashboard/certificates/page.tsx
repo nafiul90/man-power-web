@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { Award, Search, ChevronLeft, ChevronRight, Ban, ExternalLink } from 'lucide-react';
+import { Award, Search, ChevronLeft, ChevronRight, Ban, ExternalLink, Printer } from 'lucide-react';
 import Link from 'next/link';
 import { certificateService } from '@/services/certificate.service';
 import { groupService } from '@/services/group.service';
@@ -43,6 +43,7 @@ export default function CertificatesPage() {
   // issue modal state
   const [issueModal, setIssueModal] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<Certificate | null>(null);
+  const [printTarget, setPrintTarget] = useState<Certificate | null>(null);
 
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupTrainings, setGroupTrainings] = useState<GroupTraining[]>([]);
@@ -221,6 +222,9 @@ export default function CertificatesPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => setPrintTarget(c)} className="p-1.5 rounded-lg hover:bg-[var(--accent)] text-[var(--muted)] hover:text-blue-500 transition-colors" title="Print certificate">
+                        <Printer className="w-4 h-4" />
+                      </button>
                       <Link href={`/dashboard/users/${c.member._id}/profile`} className="p-1.5 rounded-lg hover:bg-[var(--accent)] text-[var(--muted)] hover:text-[var(--primary)] transition-colors" title="View member profile">
                         <ExternalLink className="w-4 h-4" />
                       </Link>
@@ -353,6 +357,91 @@ export default function CertificatesPage() {
             {submitting ? 'Revoking...' : 'Revoke'}
           </button>
         </div>
+      </Modal>
+
+      {/* Print Certificate Modal */}
+      <Modal isOpen={!!printTarget} onClose={() => setPrintTarget(null)} title="Certificate Preview" size="lg">
+        {printTarget && (
+          <div>
+            {/* Print preview area */}
+            <div id="cert-print-area" className="border-4 border-double border-[var(--primary)] rounded-xl p-8 text-center space-y-4 bg-white dark:bg-[var(--card)]">
+              <div className="flex justify-center mb-2">
+                <Award className="w-14 h-14 text-[var(--primary)]" />
+              </div>
+              <p className="text-xs font-semibold tracking-widest text-[var(--muted)] uppercase">Certificate of Completion</p>
+              <div className="border-t border-b border-[var(--card-border)] py-4 space-y-1">
+                <p className="text-sm text-[var(--muted)]">This is to certify that</p>
+                <p className="text-2xl font-bold text-[var(--foreground)]">{printTarget.member.fullName}</p>
+                <p className="text-sm text-[var(--muted)]">has successfully completed the training</p>
+                <p className="text-xl font-semibold text-[var(--primary)]">{printTarget.training.title}</p>
+                <p className="text-sm text-[var(--muted)]">in group <strong>{printTarget.group.title}</strong></p>
+              </div>
+              <div className="grid grid-cols-3 gap-4 text-xs text-[var(--muted)] pt-2">
+                <div>
+                  <p className="font-semibold text-[var(--foreground)]">{printTarget.certificateNo}</p>
+                  <p>Certificate No.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-[var(--foreground)]">{new Date(printTarget.issuedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                  <p>Date of Issue</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-[var(--foreground)]">{printTarget.issuedBy.fullName}</p>
+                  <p>Issued By</p>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-dashed border-[var(--card-border)]">
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${printTarget.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                  {printTarget.status}
+                </span>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-4">
+              <button onClick={() => setPrintTarget(null)} className="px-4 py-2 rounded-lg border border-[var(--card-border)] text-sm hover:bg-[var(--accent)] transition-colors">Close</button>
+              <button
+                onClick={() => {
+                  const el = document.getElementById('cert-print-area');
+                  if (!el) return;
+                  const win = window.open('', '_blank');
+                  if (!win) return;
+                  win.document.write(`<html><head><title>Certificate — ${printTarget.certificateNo}</title><style>
+                    body { font-family: Georgia, serif; display: flex; justify-content: center; padding: 40px; background: #fff; }
+                    .cert { border: 4px double #2d6a4f; border-radius: 12px; padding: 40px; text-align: center; max-width: 600px; width: 100%; }
+                    .cert h1 { font-size: 28px; margin: 8px 0; color: #1b4332; }
+                    .cert h2 { font-size: 22px; color: #2d6a4f; margin: 4px 0; }
+                    .cert .label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #666; margin-bottom: 8px; }
+                    .cert .meta { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 20px; font-size: 12px; color: #555; }
+                    .cert .meta strong { display: block; color: #111; font-size: 13px; }
+                    .cert .divider { border-top: 1px solid #ccc; margin: 16px 0; }
+                    .cert .status { display: inline-block; padding: 4px 12px; border-radius: 20px; background: #d1fae5; color: #065f46; font-size: 11px; margin-top: 12px; }
+                    @media print { body { padding: 0; } .cert { border-radius: 0; } }
+                  </style></head><body><div class="cert">
+                    <div class="label">Certificate of Completion</div>
+                    <div class="divider"></div>
+                    <p style="font-size:13px;color:#555">This is to certify that</p>
+                    <h1>${printTarget.member.fullName}</h1>
+                    <p style="font-size:13px;color:#555">has successfully completed the training</p>
+                    <h2>${printTarget.training.title}</h2>
+                    <p style="font-size:13px;color:#555">in group <strong>${printTarget.group.title}</strong></p>
+                    <div class="divider"></div>
+                    <div class="meta">
+                      <div><strong>${printTarget.certificateNo}</strong>Certificate No.</div>
+                      <div><strong>${new Date(printTarget.issuedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</strong>Date of Issue</div>
+                      <div><strong>${printTarget.issuedBy.fullName}</strong>Issued By</div>
+                    </div>
+                    <span class="status">${printTarget.status}</span>
+                  </div></body></html>`);
+                  win.document.close();
+                  win.focus();
+                  setTimeout(() => { win.print(); }, 300);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <Printer className="w-4 h-4" /> Print
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

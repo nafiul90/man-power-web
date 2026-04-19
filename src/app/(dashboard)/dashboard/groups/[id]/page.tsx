@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, Users, BookOpen, BarChart3, Plus, Star,
-  Award, Clock, CheckCircle, PlayCircle, ChevronDown, X, UserCheck,
+  Award, Clock, CheckCircle, PlayCircle, ChevronDown, X, UserCheck, Search,
 } from 'lucide-react';
 import { groupService } from '@/services/group.service';
 import { trainingService } from '@/services/training.service';
@@ -17,7 +17,7 @@ import { Notification } from '@/components/ui/Notification';
 import { useNotification } from '@/hooks/useNotification';
 import { useAuthStore } from '@/store/authStore';
 
-interface User { _id: string; fullName: string; phone: string; role: string; email?: string }
+interface User { _id: string; fullName: string; phone: string; role: string; email?: string; userId?: string }
 interface Training { _id: string; title: string; purpose?: string }
 interface StatusEntry { status: string; note?: string; updatedBy: { fullName: string }; date: string }
 interface GroupTraining {
@@ -33,6 +33,8 @@ interface GroupTraining {
 interface MemberTraining {
   _id: string;
   member: User;
+  training?: { _id: string; title: string };
+  groupTraining?: { status: string };
   rating: number | null;
   ratedBy?: { fullName: string };
   ratedAt?: string;
@@ -93,7 +95,10 @@ export default function GroupDetailsPage() {
 
   const [activeGT, setActiveGT] = useState<GroupTraining | null>(null);
   const [memberTrainings, setMemberTrainings] = useState<MemberTraining[]>([]);
+  const [allGroupMemberTrainings, setAllGroupMemberTrainings] = useState<MemberTraining[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [modalMemberSearch, setModalMemberSearch] = useState('');
 
   // form state
   const [assignForm, setAssignForm] = useState({ trainingId: '', instructors: [] as string[], scheduledDate: '' });
@@ -139,8 +144,9 @@ export default function GroupDetailsPage() {
       fetchGroupTrainings(),
       trainingService.getAll({ limit: '200' }).then((r) => setTrainings(r.data.data.trainings)),
       userService.getAll({ role: 'Instructor', limit: '200' }).then((r) => setInstructors(r.data.data.users)),
+      memberTrainingService.getByGroup(groupId).then((r) => setAllGroupMemberTrainings(r.data.data)).catch(() => {}),
     ]).finally(() => setLoading(false));
-  }, [fetchGroup, fetchGroupTrainings]);
+  }, [fetchGroup, fetchGroupTrainings, groupId]);
 
   useEffect(() => {
     if (activeGT) {
@@ -152,8 +158,8 @@ export default function GroupDetailsPage() {
   const openAssign = () => { setAssignForm({ trainingId: '', instructors: [], scheduledDate: '' }); setAssignModal(true); };
   const openStatus = (gt: GroupTraining) => { setActiveGT(gt); setStatusForm({ status: gt.status, note: '' }); setStatusModal(true); };
   const openInstructors = (gt: GroupTraining) => { setActiveGT(gt); setSelectedInstructors(gt.instructors.map(i => i._id)); setInstructorModal(true); };
-  const openMemberRating = (gt: GroupTraining) => { setActiveGT(gt); setRatingModal(true); };
-  const openCert = (gt: GroupTraining) => { setActiveGT(gt); setCertModal(true); setCertTarget(null); };
+  const openMemberRating = (gt: GroupTraining) => { setActiveGT(gt); setModalMemberSearch(''); setRatingModal(true); };
+  const openCert = (gt: GroupTraining) => { setActiveGT(gt); setModalMemberSearch(''); setCertModal(true); setCertTarget(null); };
 
   const handleAssign = async () => {
     if (!assignForm.trainingId) return notify('error', 'Select a training.');
@@ -379,23 +385,72 @@ export default function GroupDetailsPage() {
       )}
 
       {/* Members Tab */}
-      {tab === 'members' && (
-        <div className="space-y-3">
-          {group.members.length === 0 ? (
-            <div className="bg-[var(--card)] rounded-xl border border-[var(--card-border)] p-12 text-center text-[var(--muted)]">No members in this group.</div>
-          ) : group.members.map((m) => (
-            <div key={m._id} className="bg-[var(--card)] rounded-xl border border-[var(--card-border)] p-4 flex items-center justify-between">
-              <div>
-                <p className="font-medium text-[var(--foreground)] text-sm">{m.fullName}</p>
-                <p className="text-xs text-[var(--muted)]">{m.phone} · {m.role}</p>
-              </div>
-              <Link href={`/dashboard/users/${m._id}/profile`} className="px-3 py-1.5 text-xs font-medium bg-[var(--accent)] hover:bg-[var(--primary)] hover:text-white rounded-lg transition-colors">
-                View Profile
-              </Link>
+      {tab === 'members' && (() => {
+        // Build per-member stats from group-scoped member trainings
+        const statsMap: Record<string, { trainings: number; avgRating: number | null; certs: number }> = {};
+        allGroupMemberTrainings.forEach((mt) => {
+          const id = mt.member._id;
+          if (!statsMap[id]) statsMap[id] = { trainings: 0, avgRating: null, certs: 0 };
+          statsMap[id].trainings += 1;
+        });
+        const ratingMap: Record<string, number[]> = {};
+        allGroupMemberTrainings.forEach((mt) => {
+          if (mt.rating !== null) {
+            if (!ratingMap[mt.member._id]) ratingMap[mt.member._id] = [];
+            ratingMap[mt.member._id].push(mt.rating);
+          }
+        });
+        Object.entries(ratingMap).forEach(([id, ratings]) => {
+          statsMap[id] = { ...statsMap[id], avgRating: parseFloat((ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)) };
+        });
+
+        const filtered = group.members.filter((m) => {
+          if (!memberSearch.trim()) return true;
+          const q = memberSearch.toLowerCase();
+          return m.fullName.toLowerCase().includes(q) || m.phone.includes(q) || (m.userId ?? '').toLowerCase() === q;
+        });
+
+        return (
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted)]" />
+              <input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="Search by name, phone, or User ID..." className="w-full pl-9 pr-4 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-xs" />
             </div>
-          ))}
-        </div>
-      )}
+            {filtered.length === 0 ? (
+              <div className="bg-[var(--card)] rounded-xl border border-[var(--card-border)] p-12 text-center text-[var(--muted)]">
+                {group.members.length === 0 ? 'No members in this group.' : 'No members match search.'}
+              </div>
+            ) : filtered.map((m) => {
+              const s = statsMap[m._id] ?? { trainings: 0, avgRating: null, certs: 0 };
+              return (
+                <div key={m._id} className="bg-[var(--card)] rounded-xl border border-[var(--card-border)] p-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-[var(--foreground)] text-sm">{m.fullName}</p>
+                      {m.userId && <span className="text-xs font-mono text-[var(--primary)] bg-[var(--accent)] px-1.5 py-0.5 rounded">{m.userId}</span>}
+                    </div>
+                    <p className="text-xs text-[var(--muted)]">{m.phone} · {m.role}</p>
+                    <div className="flex gap-3 mt-1.5 flex-wrap">
+                      <span className="flex items-center gap-1 text-xs text-[var(--muted)]">
+                        <BookOpen className="w-3 h-3" /> {s.trainings} training{s.trainings !== 1 ? 's' : ''}
+                      </span>
+                      <span className="flex items-center gap-1 text-xs text-[var(--muted)]">
+                        <Star className="w-3 h-3 text-yellow-500" /> {s.avgRating !== null ? `${s.avgRating}/10` : 'Not rated'}
+                      </span>
+                      <span className="flex items-center gap-1 text-xs text-[var(--muted)]">
+                        <Award className="w-3 h-3 text-blue-500" /> {s.certs} cert{s.certs !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </div>
+                  <Link href={`/dashboard/users/${m._id}/profile`} className="px-3 py-1.5 text-xs font-medium bg-[var(--accent)] hover:bg-[var(--primary)] hover:text-white rounded-lg transition-colors shrink-0">
+                    View Profile
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Assign Training Modal */}
       <Modal isOpen={assignModal} onClose={() => setAssignModal(false)} title="Assign Training">
@@ -472,12 +527,27 @@ export default function GroupDetailsPage() {
       {/* Ratings Modal */}
       <Modal isOpen={ratingModal} onClose={() => { setRatingModal(false); setRatingTarget({ mt: null, value: 0 }); }} title={`Ratings — ${activeGT?.training.title}`} size="lg">
         <div className="space-y-3">
-          {memberTrainings.length === 0 ? (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted)]" />
+            <input value={modalMemberSearch} onChange={(e) => setModalMemberSearch(e.target.value)} placeholder="Search by name, phone, or User ID..." className="w-full pl-9 pr-4 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-xs" />
+          </div>
+          {memberTrainings.filter((mt) => {
+            if (!modalMemberSearch.trim()) return true;
+            const q = modalMemberSearch.toLowerCase();
+            return mt.member.fullName.toLowerCase().includes(q) || mt.member.phone.includes(q) || (mt.member.userId ?? '').toLowerCase() === q;
+          }).length === 0 ? (
             <p className="text-sm text-[var(--muted)] text-center py-6">No members found for this training.</p>
-          ) : memberTrainings.map((mt) => (
+          ) : memberTrainings.filter((mt) => {
+            if (!modalMemberSearch.trim()) return true;
+            const q = modalMemberSearch.toLowerCase();
+            return mt.member.fullName.toLowerCase().includes(q) || mt.member.phone.includes(q) || (mt.member.userId ?? '').toLowerCase() === q;
+          }).map((mt) => (
             <div key={mt._id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-[var(--accent)]">
               <div>
-                <p className="text-sm font-medium text-[var(--foreground)]">{mt.member.fullName}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-[var(--foreground)]">{mt.member.fullName}</p>
+                  {mt.member.userId && <span className="text-xs font-mono text-[var(--primary)] bg-[var(--card)] px-1.5 py-0.5 rounded">{mt.member.userId}</span>}
+                </div>
                 <p className="text-xs text-[var(--muted)]">{mt.member.phone}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -510,14 +580,24 @@ export default function GroupDetailsPage() {
       <Modal isOpen={certModal} onClose={() => { setCertModal(false); setCertTarget(null); }} title={`Certificates — ${activeGT?.training.title}`} size="lg">
         <div className="space-y-4">
           {canUpdateStatus && (
-            <div className="border border-[var(--card-border)] rounded-lg p-4">
-              <p className="text-sm font-medium text-[var(--foreground)] mb-3">Issue Certificate</p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <select value={certTarget?.memberId ?? ''} onChange={(e) => setCertTarget(t => ({ memberId: e.target.value, notes: t?.notes ?? '' }))} className={inputClass}>
-                  <option value="">Select member...</option>
-                  {group.members.map(m => <option key={m._id} value={m._id}>{m.fullName}</option>)}
-                </select>
-                <input value={certTarget?.notes ?? ''} onChange={(e) => setCertTarget(t => t ? { ...t, notes: e.target.value } : null)} className={inputClass} placeholder="Notes (optional)" />
+            <div className="border border-[var(--card-border)] rounded-lg p-4 space-y-3">
+              <p className="text-sm font-medium text-[var(--foreground)]">Issue Certificate</p>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted)]" />
+                <input value={modalMemberSearch} onChange={(e) => setModalMemberSearch(e.target.value)} placeholder="Search member by name, phone, or User ID..." className="w-full pl-9 pr-4 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-xs" />
+              </div>
+              <select value={certTarget?.memberId ?? ''} onChange={(e) => setCertTarget((t) => ({ memberId: e.target.value, notes: t?.notes ?? '' }))} className={inputClass}>
+                <option value="">Select member...</option>
+                {group.members.filter((m) => {
+                  if (!modalMemberSearch.trim()) return true;
+                  const q = modalMemberSearch.toLowerCase();
+                  return m.fullName.toLowerCase().includes(q) || m.phone.includes(q) || (m.userId ?? '').toLowerCase() === q;
+                }).map((m) => (
+                  <option key={m._id} value={m._id}>{m.fullName}{m.userId ? ` (${m.userId})` : ''} — {m.phone}</option>
+                ))}
+              </select>
+              <div className="flex gap-3">
+                <input value={certTarget?.notes ?? ''} onChange={(e) => setCertTarget((t) => t ? { ...t, notes: e.target.value } : null)} className={inputClass} placeholder="Notes (optional)" />
                 <button onClick={handleIssueCert} disabled={submitting || !certTarget?.memberId} className="px-4 py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white rounded-lg text-sm font-medium disabled:opacity-60 whitespace-nowrap">
                   Issue
                 </button>

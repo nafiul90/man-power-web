@@ -57,6 +57,8 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
       : { role: 'Member' },
   });
 
+  const userId = isEdit ? (user as unknown as { userId?: string })?.userId : undefined;
+
   useEffect(() => {
     groupService.getAll({ limit: '200' })
       .then((r) => setGroups(r.data.data.groups))
@@ -65,6 +67,12 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {isEdit && userId && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--card-border)]">
+          <span className="text-xs text-[var(--muted)]">User ID:</span>
+          <span className="text-xs font-mono font-semibold text-[var(--primary)]">{userId}</span>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>Full Name *</label>

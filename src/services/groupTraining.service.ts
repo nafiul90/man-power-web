@@ -1,6 +1,7 @@
 import api from '@/lib/api';
 
 export const groupTrainingService = {
+  getMine: (params?: Record<string, string>) => api.get('/group-trainings/mine', { params }),
   getByGroup: (groupId: string) => api.get(`/group-trainings/group/${groupId}`),
   getById: (id: string) => api.get(`/group-trainings/${id}`),
   assign: (data: { groupId: string; trainingId: string; instructors?: string[]; scheduledDate?: string }) =>
