@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, Building2, Tags, Map, MapPin,
   UsersRound, Wallet, Receipt, Settings, Leaf, LogOut,
-  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, BookOpen, Award,
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, BookOpen, Award, Banknote,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
@@ -37,6 +37,8 @@ const superAdminNav: NavItem[] = [
   { href: '/dashboard/groups', label: 'Groups', icon: UsersRound },
   { href: '/dashboard/trainings', label: 'Trainings', icon: BookOpen },
   { href: '/dashboard/certificates', label: 'Certificates', icon: Award },
+  { href: '/dashboard/funds', label: 'Funds', icon: Banknote },
+  { href: '/dashboard/installments', label: 'Installments', icon: Receipt },
 ];
 
 const orgOwnerNav: NavItem[] = [
@@ -58,6 +60,38 @@ const orgOwnerNav: NavItem[] = [
   { href: '/dashboard/groups', label: 'Groups', icon: UsersRound },
   { href: '/dashboard/trainings', label: 'Trainings', icon: BookOpen },
   { href: '/dashboard/certificates', label: 'Certificates', icon: Award },
+  { href: '/dashboard/funds', label: 'Funds', icon: Banknote },
+  { href: '/dashboard/installments', label: 'Installments', icon: Receipt },
+];
+
+const managerNav: NavItem[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/users', label: 'Users', icon: Users },
+  { href: '/dashboard/categories', label: 'Categories', icon: Tags },
+  {
+    href: '/dashboard/admin-areas',
+    label: 'Admin Areas',
+    icon: Map,
+    children: [
+      { href: '/dashboard/admin-areas/divisions', label: 'Divisions' },
+      { href: '/dashboard/admin-areas/districts', label: 'Districts' },
+      { href: '/dashboard/admin-areas/upazilas', label: 'Upazilas' },
+      { href: '/dashboard/admin-areas/unions', label: 'Unions' },
+    ],
+  },
+  { href: '/dashboard/zones', label: 'Zones', icon: MapPin },
+  { href: '/dashboard/groups', label: 'Groups', icon: UsersRound },
+  { href: '/dashboard/trainings', label: 'Trainings', icon: BookOpen },
+  { href: '/dashboard/certificates', label: 'Certificates', icon: Award },
+  { href: '/dashboard/funds', label: 'Funds', icon: Banknote },
+  { href: '/dashboard/installments', label: 'Installments', icon: Receipt },
+];
+
+const accountantNav: NavItem[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/funds', label: 'Funds', icon: Banknote },
+  { href: '/dashboard/installments', label: 'Installments', icon: Receipt },
+  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
 const instructorNav: NavItem[] = [
@@ -75,6 +109,8 @@ function getNavByRole(role: string): NavItem[] {
   switch (role) {
     case 'Super Admin': return superAdminNav;
     case 'Org Owner': return orgOwnerNav;
+    case 'Manager': return managerNav;
+    case 'Accountant': return accountantNav;
     case 'Instructor': return instructorNav;
     default: return defaultNav;
   }
