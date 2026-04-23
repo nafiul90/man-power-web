@@ -1,9 +1,9 @@
 export function getRatingBg(rating: number | null): string {
   if (rating === null) return '';
-  if (rating <= 4) return 'bg-red-50/80 dark:bg-red-950/25';
-  if (rating <= 6) return 'bg-yellow-50/80 dark:bg-yellow-950/25';
-  if (rating <= 7.5) return '';
-  return 'bg-green-50/80 dark:bg-green-950/25';
+  if (rating <= 4) return 'bg-red-100 dark:bg-red-950/60';
+  if (rating <= 6) return 'bg-yellow-100 dark:bg-yellow-950/60';
+  if (rating <= 7.5) return 'bg-blue-50 dark:bg-blue-950/30';
+  return 'bg-green-100 dark:bg-green-950/60';
 }
 
 export function getRatingTextClass(rating: number | null): string {

@@ -6,6 +6,7 @@ export interface WardPayload {
   district?: string | null;
   upazila?: string | null;
   union?: string | null;
+  admins?: string[];
 }
 
 export const wardService = {

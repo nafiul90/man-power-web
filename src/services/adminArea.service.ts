@@ -2,7 +2,7 @@ import api from '@/lib/api';
 
 export type AreaType = 'Division' | 'District' | 'Upazila' | 'Union';
 
-export interface AdminAreaPayload { name: string; type: AreaType; parent?: string }
+export interface AdminAreaPayload { name: string; type: AreaType; parent?: string; admins?: string[] }
 
 export const adminAreaService = {
   getAll: (params?: Record<string, string>) => api.get('/admin-areas', { params }),

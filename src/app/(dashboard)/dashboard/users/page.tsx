@@ -272,6 +272,24 @@ export default function UsersPage() {
                           <p className="text-xs text-[var(--muted)]">{u.email || '—'}</p>
                           {u.userId && <span className="text-xs font-mono text-[var(--primary)] bg-[var(--accent)] px-1.5 py-0.5 rounded">{u.userId}</span>}
                         </div>
+                        {u.stats && (
+                          <div className="mt-1">
+                            {u.stats.avgRating !== null ? (
+                              <span className={`inline-flex items-center gap-1 text-sm font-bold px-2 py-0.5 rounded-md ${
+                                u.stats.avgRating <= 4 ? 'bg-red-200 text-red-800 dark:bg-red-900/60 dark:text-red-300' :
+                                u.stats.avgRating <= 6 ? 'bg-yellow-200 text-yellow-800 dark:bg-yellow-900/60 dark:text-yellow-300' :
+                                u.stats.avgRating <= 7.5 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300' :
+                                'bg-green-200 text-green-800 dark:bg-green-900/60 dark:text-green-300'
+                              }`}>
+                                ★ {u.stats.avgRating}/10
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400 font-medium border border-red-200 dark:border-red-900">
+                                No Rating Yet
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>

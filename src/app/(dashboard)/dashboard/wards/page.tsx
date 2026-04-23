@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit, Trash2, Search, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { wardService, WardPayload } from '@/services/ward.service';
 import { adminAreaService } from '@/services/adminArea.service';
+import { userService } from '@/services/user.service';
 import { Modal } from '@/components/ui/Modal';
 import { Notification } from '@/components/ui/Notification';
 import { useNotification } from '@/hooks/useNotification';
@@ -15,6 +16,7 @@ interface Ward {
   district?: NamedRef | null;
   upazila?: NamedRef | null;
   union?: NamedRef | null;
+  admins?: { _id: string; fullName: string; phone?: string }[];
 }
 
 const inputClass = 'w-full px-4 py-2.5 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all text-sm';
@@ -25,6 +27,9 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
   const [districtId, setDistrictId] = useState(ward?.district?._id ?? '');
   const [upazilaId, setUpazilaId] = useState(ward?.upazila?._id ?? '');
   const [unionId, setUnionId] = useState(ward?.union?._id ?? '');
+  const [selectedAdmins, setSelectedAdmins] = useState<string[]>(ward?.admins?.map((a) => a._id) ?? []);
+  const [adminUsers, setAdminUsers] = useState<{ _id: string; fullName: string; phone?: string }[]>([]);
+  const [adminSearch, setAdminSearch] = useState('');
 
   const [divisions, setDivisions] = useState<NamedRef[]>([]);
   const [districts, setDistricts] = useState<NamedRef[]>([]);
@@ -36,6 +41,9 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
   useEffect(() => {
     adminAreaService.getAll({ type: 'Division', limit: '200' }).then((r) =>
       setDivisions(r.data.data.areas)
+    ).catch(() => {});
+    userService.getAll({ role: 'Ward Admin', limit: '500' }).then((r) =>
+      setAdminUsers(r.data.data.users)
     ).catch(() => {});
   }, []);
 
@@ -85,6 +93,7 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
         district: districtId || null,
         upazila: upazilaId || null,
         union: unionId || null,
+        admins: selectedAdmins,
       };
       if (ward) {
         await wardService.update(ward._id, payload);
@@ -139,6 +148,41 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
               {unions.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
             </select>
           </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
+            Ward Admins <span className="text-[var(--muted)] font-normal">({selectedAdmins.length} selected)</span>
+          </label>
+          <div className="relative mb-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted)]" />
+            <input
+              value={adminSearch}
+              onChange={(e) => setAdminSearch(e.target.value)}
+              placeholder="Search Ward Admins..."
+              className="w-full pl-9 pr-4 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-xs"
+            />
+          </div>
+          {adminUsers.length === 0 ? (
+            <p className="text-[var(--muted)] text-xs py-2">No Ward Admins available.</p>
+          ) : (
+            <div className="max-h-40 overflow-y-auto rounded-lg border border-[var(--card-border)] divide-y divide-[var(--card-border)]">
+              {adminUsers
+                .filter((u) => !adminSearch.trim() || u.fullName?.toLowerCase().includes(adminSearch.toLowerCase()) || u.phone?.includes(adminSearch))
+                .map((u) => {
+                  const isSel = selectedAdmins.includes(u._id);
+                  return (
+                    <label key={u._id} className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${isSel ? 'bg-[var(--accent)]' : 'hover:bg-[var(--accent)]/50'}`}>
+                      <input type="checkbox" checked={isSel} onChange={() => setSelectedAdmins((prev) => prev.includes(u._id) ? prev.filter((id) => id !== u._id) : [...prev, u._id])} className="w-4 h-4 accent-[var(--primary)] shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[var(--foreground)] truncate">{u.fullName}</p>
+                        <p className="text-xs text-[var(--muted)]">{u.phone}</p>
+                      </div>
+                    </label>
+                  );
+                })
+              }
+            </div>
+          )}
         </div>
         <div className="flex justify-end gap-3 pt-2">
           <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[var(--card-border)] text-sm hover:bg-[var(--accent)] transition-colors">Cancel</button>
@@ -219,14 +263,15 @@ export default function WardsPage() {
             <tr className="border-b border-[var(--card-border)] bg-[var(--accent)]/50">
               <th className="text-left px-4 py-3 font-semibold text-[var(--foreground)]">Ward Title</th>
               <th className="text-left px-4 py-3 font-semibold text-[var(--foreground)] hidden lg:table-cell">Location</th>
+              <th className="text-left px-4 py-3 font-semibold text-[var(--foreground)] hidden md:table-cell">Admins</th>
               <th className="text-right px-4 py-3 font-semibold text-[var(--foreground)]">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={3} className="text-center py-12 text-[var(--muted)]">Loading...</td></tr>
+              <tr><td colSpan={4} className="text-center py-12 text-[var(--muted)]">Loading...</td></tr>
             ) : wards.length === 0 ? (
-              <tr><td colSpan={3} className="text-center py-12 text-[var(--muted)]">No wards found.</td></tr>
+              <tr><td colSpan={4} className="text-center py-12 text-[var(--muted)]">No wards found.</td></tr>
             ) : wards.map((w) => (
               <tr key={w._id} className="border-b border-[var(--card-border)] hover:bg-[var(--accent)]/30 transition-colors">
                 <td className="px-4 py-3">
@@ -239,6 +284,17 @@ export default function WardsPage() {
                 </td>
                 <td className="px-4 py-3 hidden lg:table-cell">
                   <span className="text-xs text-[var(--muted)]">{areaLabel(w) || '—'}</span>
+                </td>
+                <td className="px-4 py-3 hidden md:table-cell">
+                  {w.admins && w.admins.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {w.admins.map((a) => (
+                        <span key={a._id} className="text-xs bg-[var(--accent)] text-[var(--foreground)] px-2 py-0.5 rounded-full">{a.fullName}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-[var(--muted)]">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">

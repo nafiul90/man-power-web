@@ -17,6 +17,8 @@ interface Group {
   ward?: SimpleRef | null;
   category?: SimpleRef | null;
   members: SimpleRef[];
+  teamLeaders?: SimpleRef[];
+  secretaries?: SimpleRef[];
 }
 
 const inputClass = 'w-full px-4 py-2.5 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all text-sm';
@@ -30,6 +32,16 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
   const [wards, setWards] = useState<SimpleRef[]>([]);
   const [categories, setCategories] = useState<SimpleRef[]>([]);
   const [users, setUsers] = useState<(SimpleRef & { phone?: string })[]>([]);
+  const [selectedTeamLeaders, setSelectedTeamLeaders] = useState<string[]>(
+    group?.teamLeaders?.map((t) => t._id) ?? []
+  );
+  const [selectedSecretaries, setSelectedSecretaries] = useState<string[]>(
+    group?.secretaries?.map((s) => s._id) ?? []
+  );
+  const [tlSearch, setTlSearch] = useState('');
+  const [secSearch, setSecSearch] = useState('');
+  const [teamLeaderUsers, setTeamLeaderUsers] = useState<(SimpleRef & { phone?: string })[]>([]);
+  const [secretaryUsers, setSecretaryUsers] = useState<(SimpleRef & { phone?: string })[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const { notification, notify } = useNotification();
 
@@ -38,10 +50,14 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
       wardService.getAll({ limit: '500' }),
       categoryService.getAll({ limit: '200' }),
       userService.getAll({ limit: '500' }),
-    ]).then(([zRes, cRes, uRes]) => {
+      userService.getAll({ limit: '500', role: 'Team Leader' }),
+      userService.getAll({ limit: '500', role: 'Secretary' }),
+    ]).then(([zRes, cRes, uRes, tlRes, secRes]) => {
       setWards(zRes.data.data.wards.map((w: { _id: string; title: string }) => ({ _id: w._id, title: w.title })));
       setCategories(cRes.data.data.categories.map((c: { _id: string; title: string }) => ({ _id: c._id, title: c.title })));
       setUsers(uRes.data.data.users.map((u: { _id: string; fullName: string; phone: string }) => ({ _id: u._id, fullName: u.fullName, phone: u.phone })));
+      setTeamLeaderUsers(tlRes.data.data.users.map((u: { _id: string; fullName: string; phone: string }) => ({ _id: u._id, fullName: u.fullName, phone: u.phone })));
+      setSecretaryUsers(secRes.data.data.users.map((u: { _id: string; fullName: string; phone: string }) => ({ _id: u._id, fullName: u.fullName, phone: u.phone })));
     }).catch(() => {});
   }, []);
 
@@ -52,6 +68,22 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
       u.fullName?.toLowerCase().includes(q) || u.phone?.includes(q)
     );
   }, [users, memberSearch]);
+
+  const filteredTeamLeaders = useMemo(() => {
+    if (!tlSearch.trim()) return teamLeaderUsers;
+    const q = tlSearch.toLowerCase();
+    return teamLeaderUsers.filter((u) =>
+      u.fullName?.toLowerCase().includes(q) || u.phone?.includes(q)
+    );
+  }, [teamLeaderUsers, tlSearch]);
+
+  const filteredSecretaries = useMemo(() => {
+    if (!secSearch.trim()) return secretaryUsers;
+    const q = secSearch.toLowerCase();
+    return secretaryUsers.filter((u) =>
+      u.fullName?.toLowerCase().includes(q) || u.phone?.includes(q)
+    );
+  }, [secretaryUsers, secSearch]);
 
   const allFilteredSelected = filteredUsers.length > 0 && filteredUsers.every((u) => selectedMembers.includes(u._id));
 
@@ -76,6 +108,8 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
         ward: wardId || undefined,
         category: categoryId || undefined,
         members: selectedMembers,
+        teamLeaders: selectedTeamLeaders,
+        secretaries: selectedSecretaries,
       };
       if (group) {
         await groupService.update(group._id, payload);
@@ -147,6 +181,80 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
                 return (
                   <label key={u._id} className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${isSelected ? 'bg-[var(--accent)]' : 'hover:bg-[var(--accent)]/50'}`}>
                     <input type="checkbox" checked={isSelected} onChange={() => toggleMember(u._id)} className="w-4 h-4 accent-[var(--primary)] shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[var(--foreground)] truncate">{u.fullName}</p>
+                      <p className="text-xs text-[var(--muted)]">{u.phone}</p>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-[var(--foreground)]">
+              Team Leaders <span className="text-[var(--muted)] font-normal">({selectedTeamLeaders.length} selected)</span>
+            </label>
+          </div>
+          <div className="relative mb-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted)]" />
+            <input
+              value={tlSearch}
+              onChange={(e) => setTlSearch(e.target.value)}
+              placeholder="Search team leaders..."
+              className="w-full pl-9 pr-4 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-xs"
+            />
+          </div>
+          {teamLeaderUsers.length === 0 ? (
+            <p className="text-[var(--muted)] text-xs text-center py-3 border border-[var(--card-border)] rounded-lg">No Team Leader users available.</p>
+          ) : (
+            <div className="max-h-40 overflow-y-auto rounded-lg border border-[var(--card-border)] divide-y divide-[var(--card-border)]">
+              {filteredTeamLeaders.length === 0 ? (
+                <p className="text-[var(--muted)] text-xs text-center py-3">No match.</p>
+              ) : filteredTeamLeaders.map((u) => {
+                const isSel = selectedTeamLeaders.includes(u._id);
+                return (
+                  <label key={u._id} className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${isSel ? 'bg-[var(--accent)]' : 'hover:bg-[var(--accent)]/50'}`}>
+                    <input type="checkbox" checked={isSel} onChange={() => setSelectedTeamLeaders((prev) => prev.includes(u._id) ? prev.filter((id) => id !== u._id) : [...prev, u._id])} className="w-4 h-4 accent-[var(--primary)] shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[var(--foreground)] truncate">{u.fullName}</p>
+                      <p className="text-xs text-[var(--muted)]">{u.phone}</p>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-[var(--foreground)]">
+              Secretaries <span className="text-[var(--muted)] font-normal">({selectedSecretaries.length} selected)</span>
+            </label>
+          </div>
+          <div className="relative mb-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted)]" />
+            <input
+              value={secSearch}
+              onChange={(e) => setSecSearch(e.target.value)}
+              placeholder="Search secretaries..."
+              className="w-full pl-9 pr-4 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-xs"
+            />
+          </div>
+          {secretaryUsers.length === 0 ? (
+            <p className="text-[var(--muted)] text-xs text-center py-3 border border-[var(--card-border)] rounded-lg">No Secretary users available.</p>
+          ) : (
+            <div className="max-h-40 overflow-y-auto rounded-lg border border-[var(--card-border)] divide-y divide-[var(--card-border)]">
+              {filteredSecretaries.length === 0 ? (
+                <p className="text-[var(--muted)] text-xs text-center py-3">No match.</p>
+              ) : filteredSecretaries.map((u) => {
+                const isSel = selectedSecretaries.includes(u._id);
+                return (
+                  <label key={u._id} className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${isSel ? 'bg-[var(--accent)]' : 'hover:bg-[var(--accent)]/50'}`}>
+                    <input type="checkbox" checked={isSel} onChange={() => setSelectedSecretaries((prev) => prev.includes(u._id) ? prev.filter((id) => id !== u._id) : [...prev, u._id])} className="w-4 h-4 accent-[var(--primary)] shrink-0" />
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-[var(--foreground)] truncate">{u.fullName}</p>
                       <p className="text-xs text-[var(--muted)]">{u.phone}</p>

@@ -2,11 +2,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit, Trash2, Search, MapPin } from 'lucide-react';
 import { adminAreaService, AreaType } from '@/services/adminArea.service';
+import { userService } from '@/services/user.service';
 import { Modal } from '@/components/ui/Modal';
 import { Notification } from '@/components/ui/Notification';
 import { useNotification } from '@/hooks/useNotification';
 
-interface AdminArea { _id: string; name: string; type: AreaType; parent?: { _id: string; name: string } | null }
+interface AdminArea { _id: string; name: string; type: AreaType; parent?: { _id: string; name: string } | null; admins?: { _id: string; fullName: string; phone?: string }[] }
+
+const ADMIN_ROLE: Partial<Record<AreaType, string>> = {
+  District: 'District Admin',
+  Upazila: 'Upazila Admin',
+  Union: 'Union Admin',
+};
 
 const PARENT_TYPE: Record<AreaType, AreaType | null> = {
   Division: null, District: 'Division', Upazila: 'District', Union: 'Upazila',
@@ -24,6 +31,9 @@ export function AdminAreaList({ type }: { type: AreaType }) {
   const [selected, setSelected] = useState<AdminArea | null>(null);
   const [name, setName] = useState('');
   const [parentId, setParentId] = useState('');
+  const [selectedAdmins, setSelectedAdmins] = useState<string[]>([]);
+  const [adminUsers, setAdminUsers] = useState<{ _id: string; fullName: string; phone?: string }[]>([]);
+  const [adminSearch, setAdminSearch] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { notification, notify } = useNotification();
 
@@ -49,9 +59,18 @@ export function AdminAreaList({ type }: { type: AreaType }) {
   useEffect(() => { fetchAreas(); }, [fetchAreas]);
   useEffect(() => { if (modal === 'create' || modal === 'edit') fetchParents(); }, [modal, fetchParents]);
 
-  const openCreate = () => { setName(''); setParentId(''); setSelected(null); setModal('create'); };
-  const openEdit = (a: AdminArea) => { setName(a.name); setParentId(a.parent?._id ?? ''); setSelected(a); setModal('edit'); };
-  const closeModal = () => { setModal(null); setSelected(null); setName(''); setParentId(''); };
+  useEffect(() => {
+    const adminRole = ADMIN_ROLE[type];
+    if (adminRole && (modal === 'create' || modal === 'edit')) {
+      userService.getAll({ role: adminRole, limit: '500' }).then((r) =>
+        setAdminUsers(r.data.data.users)
+      ).catch(() => {});
+    }
+  }, [modal, type]);
+
+  const openCreate = () => { setName(''); setParentId(''); setSelectedAdmins([]); setAdminSearch(''); setSelected(null); setModal('create'); };
+  const openEdit = (a: AdminArea) => { setName(a.name); setParentId(a.parent?._id ?? ''); setSelectedAdmins((a.admins ?? []).map((ad) => ad._id)); setAdminSearch(''); setSelected(a); setModal('edit'); };
+  const closeModal = () => { setModal(null); setSelected(null); setName(''); setParentId(''); setSelectedAdmins([]); setAdminSearch(''); };
 
   const handleSave = async () => {
     if (!name.trim()) return notify('error', 'Name is required.');
@@ -59,10 +78,10 @@ export function AdminAreaList({ type }: { type: AreaType }) {
     setSubmitting(true);
     try {
       if (modal === 'edit' && selected) {
-        await adminAreaService.update(selected._id, { name: name.trim(), parent: parentId || undefined });
+        await adminAreaService.update(selected._id, { name: name.trim(), parent: parentId || undefined, admins: selectedAdmins });
         notify('success', `${type} updated.`);
       } else {
-        await adminAreaService.create({ name: name.trim(), type, parent: parentId || undefined });
+        await adminAreaService.create({ name: name.trim(), type, parent: parentId || undefined, admins: selectedAdmins });
         notify('success', `${type} created.`);
       }
       closeModal();
@@ -111,14 +130,15 @@ export function AdminAreaList({ type }: { type: AreaType }) {
             <tr className="border-b border-[var(--card-border)] bg-[var(--accent)]/50">
               <th className="text-left px-4 py-3 font-semibold text-[var(--foreground)]">Name</th>
               {parentType && <th className="text-left px-4 py-3 font-semibold text-[var(--foreground)] hidden sm:table-cell">{parentType}</th>}
+              {ADMIN_ROLE[type] && <th className="text-left px-4 py-3 font-semibold text-[var(--foreground)] hidden md:table-cell">Admins</th>}
               <th className="text-right px-4 py-3 font-semibold text-[var(--foreground)]">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={3} className="text-center py-12 text-[var(--muted)]">Loading...</td></tr>
+              <tr><td colSpan={ADMIN_ROLE[type] ? 4 : 3} className="text-center py-12 text-[var(--muted)]">Loading...</td></tr>
             ) : areas.length === 0 ? (
-              <tr><td colSpan={3} className="text-center py-12 text-[var(--muted)]">No {type.toLowerCase()}s found.</td></tr>
+              <tr><td colSpan={ADMIN_ROLE[type] ? 4 : 3} className="text-center py-12 text-[var(--muted)]">No {type.toLowerCase()}s found.</td></tr>
             ) : areas.map((a) => (
               <tr key={a._id} className="border-b border-[var(--card-border)] hover:bg-[var(--accent)]/30 transition-colors">
                 <td className="px-4 py-3">
@@ -130,6 +150,19 @@ export function AdminAreaList({ type }: { type: AreaType }) {
                   </div>
                 </td>
                 {parentType && <td className="px-4 py-3 text-[var(--muted)] hidden sm:table-cell">{a.parent?.name ?? '—'}</td>}
+                {ADMIN_ROLE[type] && (
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    {a.admins && a.admins.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {a.admins.map((ad) => (
+                          <span key={ad._id} className="text-xs bg-[var(--accent)] text-[var(--foreground)] px-2 py-0.5 rounded-full">{ad.fullName}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-[var(--muted)]">—</span>
+                    )}
+                  </td>
+                )}
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
                     <button onClick={() => openEdit(a)} className="p-1.5 rounded-lg hover:bg-[var(--accent)] text-[var(--muted)] hover:text-[var(--primary)] transition-colors"><Edit className="w-4 h-4" /></button>
@@ -158,6 +191,43 @@ export function AdminAreaList({ type }: { type: AreaType }) {
             <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Name *</label>
             <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} placeholder={`${type} name`} onKeyDown={(e) => e.key === 'Enter' && handleSave()} />
           </div>
+          {ADMIN_ROLE[type] && (
+            <div>
+              <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
+                {ADMIN_ROLE[type]}s <span className="text-[var(--muted)] font-normal">({selectedAdmins.length} selected)</span>
+              </label>
+              <div className="relative mb-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted)]" />
+                <input
+                  value={adminSearch}
+                  onChange={(e) => setAdminSearch(e.target.value)}
+                  placeholder={`Search ${ADMIN_ROLE[type]}s...`}
+                  className="w-full pl-9 pr-4 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-xs"
+                />
+              </div>
+              {adminUsers.length === 0 ? (
+                <p className="text-[var(--muted)] text-xs py-2">No {ADMIN_ROLE[type]}s available.</p>
+              ) : (
+                <div className="max-h-40 overflow-y-auto rounded-lg border border-[var(--card-border)] divide-y divide-[var(--card-border)]">
+                  {adminUsers
+                    .filter((u) => !adminSearch.trim() || u.fullName?.toLowerCase().includes(adminSearch.toLowerCase()) || u.phone?.includes(adminSearch))
+                    .map((u) => {
+                      const isSel = selectedAdmins.includes(u._id);
+                      return (
+                        <label key={u._id} className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${isSel ? 'bg-[var(--accent)]' : 'hover:bg-[var(--accent)]/50'}`}>
+                          <input type="checkbox" checked={isSel} onChange={() => setSelectedAdmins((prev) => prev.includes(u._id) ? prev.filter((id) => id !== u._id) : [...prev, u._id])} className="w-4 h-4 accent-[var(--primary)] shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-[var(--foreground)] truncate">{u.fullName}</p>
+                            <p className="text-xs text-[var(--muted)]">{u.phone}</p>
+                          </div>
+                        </label>
+                      );
+                    })
+                  }
+                </div>
+              )}
+            </div>
+          )}
           <div className="flex justify-end gap-3">
             <button onClick={closeModal} className="px-4 py-2 rounded-lg border border-[var(--card-border)] text-sm hover:bg-[var(--accent)] transition-colors">Cancel</button>
             <button onClick={handleSave} disabled={submitting} className="px-6 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white rounded-lg text-sm font-semibold disabled:opacity-60">{submitting ? 'Saving...' : 'Save'}</button>
