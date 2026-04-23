@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { useState, useEffect } from 'react';
 import { User } from '@/lib/auth';
 import { groupService } from '@/services/group.service';
+import { useAuthStore } from '@/store/authStore';
 
 const ROLES = [
   'Super Admin', 'Org Owner', 'Manager', 'Instructor', 'Accountant', 'Member',
@@ -38,6 +39,18 @@ interface UserFormProps {
 export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
   const isEdit = !!user;
   const [groups, setGroups] = useState<Group[]>([]);
+  const { user: currentUser } = useAuthStore();
+
+  const ROLE_LIMITS: Record<string, string[]> = {
+    'Manager': ['Team Leader', 'Secretary', 'Instructor', 'Member'],
+    'Ward Admin': ['Team Leader', 'Secretary', 'Instructor', 'Member'],
+    'District Admin': ['Team Leader', 'Secretary', 'Instructor', 'Member', 'Ward Admin', 'Union Admin'],
+    'Upazila Admin': ['Team Leader', 'Secretary', 'Instructor', 'Member', 'Ward Admin', 'Union Admin'],
+    'Union Admin': ['Team Leader', 'Secretary', 'Instructor', 'Member', 'Ward Admin'],
+  };
+
+  const availableRoles = ROLE_LIMITS[currentUser?.role ?? '']
+    ?? ['Super Admin', 'Org Owner', 'Manager', 'Instructor', 'Accountant', 'Member', 'Team Leader', 'Secretary', 'District Admin', 'Upazila Admin', 'Union Admin', 'Ward Admin'];
 
   const schema = isEdit
     ? baseSchema
@@ -116,7 +129,7 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
         <div>
           <label className={labelClass}>Role *</label>
           <select {...register('role')} className={inputClass}>
-            {ROLES.map((r) => (
+            {availableRoles.map((r) => (
               <option key={r} value={r}>{r}</option>
             ))}
           </select>

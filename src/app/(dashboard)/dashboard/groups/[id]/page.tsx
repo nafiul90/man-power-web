@@ -471,7 +471,7 @@ export default function GroupDetailsPage() {
             ) : filtered.map((m) => {
               const s = statsMap[m._id] ?? { trainings: 0, avgRating: null, certs: 0 };
               return (
-                <div key={m._id} className={`rounded-xl border border-[var(--card-border)] p-4 flex flex-wrap items-center justify-between gap-3 ${getRatingBg(s.avgRating)}`}>
+                <div key={m._id} className={`rounded-xl border border-[var(--card-border)] p-4 flex flex-wrap items-center justify-between gap-3`}>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium text-[var(--foreground)] text-sm">{m.fullName}</p>
@@ -482,8 +482,8 @@ export default function GroupDetailsPage() {
                       <span className="flex items-center gap-1 text-xs text-[var(--muted)]">
                         <BookOpen className="w-3 h-3" /> {s.trainings} training{s.trainings !== 1 ? 's' : ''}
                       </span>
-                      <span className={`flex items-center gap-1 text-xs ${getRatingTextClass(s.avgRating)}`}>
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${getRatingDotClass(s.avgRating)}`} />
+                      <span className={`flex items-center gap-1 text-lg ${getRatingTextClass(s.avgRating)}`}>
+                        <span className={`w-2 h-2 rounded-full shrink-0  ${getRatingDotClass(s.avgRating)}`} />
                         {s.avgRating !== null
                           ? `${s.avgRating}/10`
                           : <span className="flex items-center gap-1">— <span className="px-1 py-0.5 rounded bg-red-100 dark:bg-red-950/50 text-red-500 text-[10px] font-medium">No Rating</span></span>

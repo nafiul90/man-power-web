@@ -20,4 +20,5 @@ export const userService = {
   getMe: () => api.get('/users/me'),
   changeOwnPassword: (currentPassword: string, newPassword: string) =>
     api.patch('/users/me/change-password', { currentPassword, newPassword }),
+  rateUser: (id: string, rating: number) => api.put(`/users/${id}/rate`, { rating }),
 };

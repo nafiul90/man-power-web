@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, Edit, Trash2, Key, User, ChevronLeft, ChevronRight,
-  ExternalLink, SlidersHorizontal, X, Award, BookOpen, Users,
+  ExternalLink, SlidersHorizontal, X, Award, BookOpen, Users, Star,
 } from 'lucide-react';
 import { getRatingBg, getRatingTextClass, getRatingDotClass } from '@/lib/rating';
 import Link from 'next/link';
@@ -16,7 +16,7 @@ import { UserForm } from '@/components/users/UserForm';
 import { ChangePasswordForm } from '@/components/users/ChangePasswordForm';
 import { useAuthStore } from '@/store/authStore';
 
-type ModalType = 'create' | 'edit' | 'password' | 'delete' | null;
+type ModalType = 'create' | 'edit' | 'password' | 'delete' | 'rate' | null;
 
 interface UserWithStats extends UserType {
   userId?: string;
@@ -42,6 +42,7 @@ export default function UsersPage() {
   const [modal, setModal] = useState<ModalType>(null);
   const [selectedUser, setSelectedUser] = useState<UserWithStats | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [ratingInput, setRatingInput] = useState<string>('');
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterState>({ groupId: '', trainingId: '', minRating: '', maxRating: '', hasCert: '' });
@@ -137,6 +138,20 @@ export default function UsersPage() {
     finally { setSubmitting(false); }
   };
 
+  const handleRate = async () => {
+    if (!selectedUser) return;
+    const val = parseFloat(ratingInput);
+    if (isNaN(val) || val < 0 || val > 10) return notify('error', 'Rating must be between 0 and 10.');
+    setSubmitting(true);
+    try {
+      await userService.rateUser(selectedUser._id, val);
+      notify('success', 'Rating saved.');
+      closeModal();
+      fetchUsers();
+    } catch { notify('error', 'Failed to save rating.'); }
+    finally { setSubmitting(false); }
+  };
+
   const clearFilters = () => {
     setFilters({ groupId: '', trainingId: '', minRating: '', maxRating: '', hasCert: '' });
     setPage(1);
@@ -144,6 +159,9 @@ export default function UsersPage() {
 
   const isSuperAdmin = currentUser?.role === 'Super Admin';
   const canManage = ['Super Admin', 'Org Owner'].includes(currentUser?.role || '');
+  const RATER_ROLES = ['Super Admin', 'Org Owner', 'Manager', 'District Admin', 'Upazila Admin', 'Union Admin', 'Ward Admin'];
+  const RATEABLE_ROLES = ['Member', 'Team Leader', 'Secretary', 'Instructor'];
+  const canRateUsers = RATER_ROLES.includes(currentUser?.role || '');
 
   return (
     <div className="space-y-6">
@@ -337,6 +355,15 @@ export default function UsersPage() {
                       <Link href={`/dashboard/users/${u._id}/profile`} className="p-1.5 rounded-lg hover:bg-[var(--accent)] text-[var(--muted)] hover:text-green-500 transition-colors" title="View profile">
                         <ExternalLink className="w-4 h-4" />
                       </Link>
+                      {canRateUsers && RATEABLE_ROLES.includes(u.role) && (
+                        <button
+                          onClick={() => { setRatingInput(''); openModal('rate', u); }}
+                          className="p-1.5 rounded-lg hover:bg-[var(--accent)] text-[var(--muted)] hover:text-yellow-500 transition-colors"
+                          title="Rate user"
+                        >
+                          <Star className="w-4 h-4" />
+                        </button>
+                      )}
                       {isSuperAdmin && u.role !== 'Super Admin' && (
                         <button onClick={() => openModal('delete', u)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-[var(--muted)] hover:text-red-500 transition-colors" title="Delete user">
                           <Trash2 className="w-4 h-4" />
@@ -386,6 +413,43 @@ export default function UsersPage() {
           <button onClick={handleDelete} disabled={submitting} className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors disabled:opacity-60">
             {submitting ? 'Deleting...' : 'Delete'}
           </button>
+        </div>
+      </Modal>
+      <Modal isOpen={modal === 'rate'} onClose={closeModal} title={`Rate ${selectedUser?.fullName}`} size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--muted)]">Enter a rating from 0 to 10 for this user.</p>
+          <div>
+            <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Rating (0–10)</label>
+            <input
+              type="number"
+              min={0}
+              max={10}
+              step={0.5}
+              value={ratingInput}
+              onChange={(e) => setRatingInput(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-sm"
+              placeholder="e.g. 7.5"
+              autoFocus
+            />
+            {ratingInput && (
+              <div className="mt-2">
+                <span className={`inline-flex items-center gap-1 text-sm font-bold px-3 py-1 rounded-md ${
+                  parseFloat(ratingInput) <= 4 ? 'bg-red-200 text-red-800' :
+                  parseFloat(ratingInput) <= 6 ? 'bg-yellow-200 text-yellow-800' :
+                  parseFloat(ratingInput) <= 7.5 ? 'bg-blue-100 text-blue-800' :
+                  'bg-green-200 text-green-800'
+                }`}>
+                  ★ {ratingInput}/10
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-3">
+            <button onClick={closeModal} className="px-4 py-2 rounded-lg border border-[var(--card-border)] text-sm hover:bg-[var(--accent)] transition-colors">Cancel</button>
+            <button onClick={handleRate} disabled={submitting || !ratingInput} className="px-6 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white rounded-lg text-sm font-semibold disabled:opacity-60">
+              {submitting ? 'Saving...' : 'Save Rating'}
+            </button>
+          </div>
         </div>
       </Modal>
     </div>

@@ -1,17 +1,17 @@
 export function getRatingBg(rating: number | null): string {
   if (rating === null) return '';
-  if (rating <= 4) return 'bg-red-100 dark:bg-red-950/60';
-  if (rating <= 6) return 'bg-yellow-100 dark:bg-yellow-950/60';
-  if (rating <= 7.5) return 'bg-blue-50 dark:bg-blue-950/30';
-  return 'bg-green-100 dark:bg-green-950/60';
+  if (rating <= 4) return 'bg-red-50/80 dark:bg-red-950/25';
+  if (rating <= 6) return 'bg-yellow-50/80 dark:bg-yellow-950/25';
+  if (rating <= 7.5) return '';
+  return 'bg-green-50/80 dark:bg-green-950/25';
 }
 
 export function getRatingTextClass(rating: number | null): string {
-  if (rating === null) return 'text-[var(--muted)]';
-  if (rating <= 4) return 'text-red-600 dark:text-red-400 font-semibold';
-  if (rating <= 6) return 'text-yellow-600 dark:text-yellow-500 font-semibold';
-  if (rating <= 7.5) return 'text-[var(--foreground)]';
-  return 'text-green-600 dark:text-green-400 font-semibold';
+  if (rating === null) return 'px-3 rounded-lg bg-[var(--muted)]';
+  if (rating <= 4) return 'px-3 rounded-lg bg-red-600 dark:text-red-400 font-semibold';
+  if (rating <= 6) return 'px-3 rounded-lg bg-yellow-600 dark:text-yellow-500 font-semibold';
+  if (rating <= 7.5) return 'px-3 rounded-lg bg-[var(--foreground)]';
+  return 'px-3 rounded-lg bg-green-600 dark:bg-green-400 font-semibold';
 }
 
 export function getRatingDotClass(rating: number | null): string {
