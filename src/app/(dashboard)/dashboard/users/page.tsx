@@ -327,13 +327,13 @@ export default function UsersPage() {
                         <span className="flex items-center gap-1 text-xs text-[var(--muted)]">
                           <BookOpen className="w-3 h-3" /> {u.stats.trainings}
                         </span>
-                        <span className={`flex items-center gap-1 text-xs ${getRatingTextClass(u.stats.avgRating)}`}>
+                        {/* <span className={`flex items-center gap-1 text-xs ${getRatingTextClass(u.stats.avgRating)}`}>
                           <span className={`w-2 h-2 rounded-full shrink-0 ${getRatingDotClass(u.stats.avgRating)}`} />
                           {u.stats.avgRating !== null
                             ? `${u.stats.avgRating}/10`
                             : <span className="flex items-center gap-1">— <span className="px-1 py-0.5 rounded bg-red-100 dark:bg-red-950/50 text-red-500 dark:text-red-400 text-[10px] font-medium leading-none">No Rating</span></span>
                           }
-                        </span>
+                        </span> */}
                         <span className="flex items-center gap-1 text-xs text-[var(--muted)]">
                           <Award className="w-3 h-3 text-blue-500" /> {u.stats.certs}
                         </span>

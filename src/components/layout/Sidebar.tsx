@@ -211,7 +211,7 @@ export function Sidebar() {
           <div className="flex items-center gap-2">
             <Leaf className="w-6 h-6 text-[#74c69d]" />
             <span className="font-bold text-lg">
-              <span className="text-[#74c69d]">Agri</span>NGO
+              <span className="text-[#74c69d]">Man</span>Power
             </span>
           </div>
         )}
