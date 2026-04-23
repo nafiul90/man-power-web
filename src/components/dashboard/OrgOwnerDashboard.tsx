@@ -6,20 +6,20 @@ import api from '@/lib/api';
 
 export function OrgOwnerDashboard() {
   const [org, setOrg] = useState<{ title: string } | null>(null);
-  const [stats, setStats] = useState({ categories: 0, zones: 0, groups: 0, users: 0 });
+  const [stats, setStats] = useState({ categories: 0, wards: 0, groups: 0, users: 0 });
 
   useEffect(() => {
     Promise.all([
       api.get('/organizations/my').catch(() => null),
       api.get('/categories?limit=1').catch(() => null),
-      api.get('/zones?limit=1').catch(() => null),
+      api.get('/wards?limit=1').catch(() => null),
       api.get('/groups?limit=1').catch(() => null),
       api.get('/users?limit=1').catch(() => null),
-    ]).then(([orgRes, catRes, zoneRes, groupRes, userRes]) => {
+    ]).then(([orgRes, catRes, wardRes, groupRes, userRes]) => {
       setOrg(orgRes?.data?.data ?? null);
       setStats({
         categories: catRes?.data?.data?.total ?? 0,
-        zones: zoneRes?.data?.data?.total ?? 0,
+        wards: wardRes?.data?.data?.total ?? 0,
         groups: groupRes?.data?.data?.total ?? 0,
         users: userRes?.data?.data?.total ?? 0,
       });
@@ -28,7 +28,7 @@ export function OrgOwnerDashboard() {
 
   const cards = [
     { label: 'Categories', value: stats.categories, icon: Tags, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-950/30', href: '/dashboard/categories' },
-    { label: 'Zones', value: stats.zones, icon: Map, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/30', href: '/dashboard/zones/divisions' },
+    { label: 'Wards', value: stats.wards, icon: Map, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/30', href: '/dashboard/wards/divisions' },
     { label: 'Groups', value: stats.groups, icon: UsersRound, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-950/30', href: '/dashboard/groups' },
     { label: 'Users', value: stats.users, icon: Users, color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-950/30', href: '/dashboard/users' },
   ];
@@ -71,7 +71,7 @@ export function OrgOwnerDashboard() {
         <div>
           <h2 className="text-lg font-bold text-[#74c69d] mb-1">Organization Management</h2>
           <p className="text-[#b7e4c7] text-sm">
-            Manage your organization&apos;s categories, zones, groups, and users from this panel.
+            Manage your organization&apos;s categories, wards, groups, and users from this panel.
           </p>
         </div>
       </div>

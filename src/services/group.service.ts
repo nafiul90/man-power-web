@@ -2,7 +2,7 @@ import api from '@/lib/api';
 
 export interface GroupPayload {
   title: string;
-  zone?: string;
+  ward?: string;
   category?: string;
   members?: string[];
 }

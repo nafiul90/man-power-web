@@ -4,7 +4,7 @@ import { Plus, Edit, Trash2, UsersRound, Search, ChevronLeft, ChevronRight, Exte
 import Link from 'next/link';
 import { groupService, GroupPayload } from '@/services/group.service';
 import { categoryService } from '@/services/category.service';
-import { zoneService } from '@/services/zone.service';
+import { wardService } from '@/services/ward.service';
 import { userService } from '@/services/user.service';
 import { Modal } from '@/components/ui/Modal';
 import { Notification } from '@/components/ui/Notification';
@@ -14,7 +14,7 @@ interface SimpleRef { _id: string; name?: string; title?: string; fullName?: str
 interface Group {
   _id: string;
   title: string;
-  zone?: SimpleRef | null;
+  ward?: SimpleRef | null;
   category?: SimpleRef | null;
   members: SimpleRef[];
 }
@@ -23,11 +23,11 @@ const inputClass = 'w-full px-4 py-2.5 rounded-lg border border-[var(--card-bord
 
 function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onClose: () => void; onSaved: () => void }) {
   const [title, setTitle] = useState(group?.title ?? '');
-  const [zoneId, setZoneId] = useState(group?.zone?._id ?? '');
+  const [wardId, setWardId] = useState(group?.ward?._id ?? '');
   const [categoryId, setCategoryId] = useState(group?.category?._id ?? '');
   const [selectedMembers, setSelectedMembers] = useState<string[]>(group?.members.map((m) => m._id) ?? []);
   const [memberSearch, setMemberSearch] = useState('');
-  const [zones, setZones] = useState<SimpleRef[]>([]);
+  const [wards, setWards] = useState<SimpleRef[]>([]);
   const [categories, setCategories] = useState<SimpleRef[]>([]);
   const [users, setUsers] = useState<(SimpleRef & { phone?: string })[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -35,11 +35,11 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
 
   useEffect(() => {
     Promise.all([
-      zoneService.getAll({ limit: '500' }),
+      wardService.getAll({ limit: '500' }),
       categoryService.getAll({ limit: '200' }),
       userService.getAll({ limit: '500' }),
     ]).then(([zRes, cRes, uRes]) => {
-      setZones(zRes.data.data.zones.map((z: { _id: string; title: string }) => ({ _id: z._id, title: z.title })));
+      setWards(zRes.data.data.wards.map((w: { _id: string; title: string }) => ({ _id: w._id, title: w.title })));
       setCategories(cRes.data.data.categories.map((c: { _id: string; title: string }) => ({ _id: c._id, title: c.title })));
       setUsers(uRes.data.data.users.map((u: { _id: string; fullName: string; phone: string }) => ({ _id: u._id, fullName: u.fullName, phone: u.phone })));
     }).catch(() => {});
@@ -73,7 +73,7 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
     try {
       const payload: GroupPayload = {
         title: title.trim(),
-        zone: zoneId || undefined,
+        ward: wardId || undefined,
         category: categoryId || undefined,
         members: selectedMembers,
       };
@@ -101,10 +101,10 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Zone</label>
-            <select value={zoneId} onChange={(e) => setZoneId(e.target.value)} className={inputClass}>
-              <option value="">Select zone</option>
-              {zones.map((z) => <option key={z._id} value={z._id}>{z.title}</option>)}
+            <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Ward</label>
+            <select value={wardId} onChange={(e) => setWardId(e.target.value)} className={inputClass}>
+              <option value="">Select ward</option>
+              {wards.map((w) => <option key={w._id} value={w._id}>{w.title}</option>)}
             </select>
           </div>
           <div>
@@ -253,10 +253,10 @@ export default function GroupsPage() {
               </div>
             </div>
             <div className="space-y-1.5">
-              {group.zone && (
+              {group.ward && (
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="text-[var(--muted)] w-16 shrink-0">Zone:</span>
-                  <span className="bg-[var(--accent)] px-2 py-0.5 rounded text-[var(--primary)] font-medium">{group.zone.title}</span>
+                  <span className="text-[var(--muted)] w-16 shrink-0">Ward:</span>
+                  <span className="bg-[var(--accent)] px-2 py-0.5 rounded text-[var(--primary)] font-medium">{group.ward.title}</span>
                 </div>
               )}
               {group.category && (

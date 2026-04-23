@@ -51,7 +51,7 @@ interface Certificate {
 interface Group {
   _id: string;
   title: string;
-  zone?: { title: string };
+  ward?: { title: string };
   category?: { title: string };
   members: User[];
   org: { title: string };
@@ -246,7 +246,7 @@ export default function GroupDetailsPage() {
           <h1 className="text-2xl font-bold text-[var(--foreground)] truncate">{group.title}</h1>
           <div className="flex flex-wrap gap-3 mt-1 text-sm text-[var(--muted)]">
             {group.org && <span>{group.org.title}</span>}
-            {group.zone && <><span>·</span><span>{group.zone.title}</span></>}
+            {group.ward && <><span>·</span><span>{group.ward.title}</span></>}
             {group.category && <><span>·</span><span>{group.category.title}</span></>}
           </div>
         </div>
