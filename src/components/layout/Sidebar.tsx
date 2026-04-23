@@ -100,6 +100,12 @@ const instructorNav: NavItem[] = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
+const teamLeaderNav: NavItem[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/groups', label: 'My Groups', icon: UsersRound },
+  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+];
+
 const defaultNav: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
@@ -112,6 +118,14 @@ function getNavByRole(role: string): NavItem[] {
     case 'Manager': return managerNav;
     case 'Accountant': return accountantNav;
     case 'Instructor': return instructorNav;
+    case 'Team Leader':
+    case 'Secretary':
+      return teamLeaderNav;
+    case 'District Admin':
+    case 'Upazila Admin':
+    case 'Union Admin':
+    case 'Ward Admin':
+      return managerNav;
     default: return defaultNav;
   }
 }

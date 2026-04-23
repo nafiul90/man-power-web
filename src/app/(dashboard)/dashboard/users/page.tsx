@@ -2,8 +2,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, Edit, Trash2, Key, User, ChevronLeft, ChevronRight,
-  ExternalLink, SlidersHorizontal, X, Star, Award, BookOpen, Users,
+  ExternalLink, SlidersHorizontal, X, Award, BookOpen, Users,
 } from 'lucide-react';
+import { getRatingBg, getRatingTextClass, getRatingDotClass } from '@/lib/rating';
 import Link from 'next/link';
 import { userService } from '@/services/user.service';
 import { groupService } from '@/services/group.service';
@@ -181,7 +182,8 @@ export default function UsersPage() {
           className="px-4 py-2.5 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-sm"
         >
           <option value="">All Roles</option>
-          {['Super Admin', 'Org Owner', 'Manager', 'Instructor', 'Accountant', 'Member'].map((r) => (
+          {['Super Admin', 'Org Owner', 'Manager', 'Instructor', 'Accountant', 'Member',
+            'Team Leader', 'Secretary', 'District Admin', 'Upazila Admin', 'Union Admin', 'Ward Admin'].map((r) => (
             <option key={r} value={r}>{r}</option>
           ))}
         </select>
@@ -258,7 +260,7 @@ export default function UsersPage() {
               ) : users.length === 0 ? (
                 <tr><td colSpan={5} className="text-center py-12 text-[var(--muted)]">No users found.</td></tr>
               ) : users.map((u) => (
-                <tr key={u._id} className="border-b border-[var(--card-border)] hover:bg-[var(--accent)]/30 transition-colors">
+                <tr key={u._id} className={`border-b border-[var(--card-border)] transition-colors hover:brightness-95 ${getRatingBg(u.stats?.avgRating ?? null)}`}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-[var(--primary)] flex items-center justify-center shrink-0">
@@ -289,9 +291,12 @@ export default function UsersPage() {
                         <span className="flex items-center gap-1 text-xs text-[var(--muted)]">
                           <BookOpen className="w-3 h-3" /> {u.stats.trainings}
                         </span>
-                        <span className="flex items-center gap-1 text-xs text-[var(--muted)]">
-                          <Star className="w-3 h-3 text-yellow-500" />
-                          {u.stats.avgRating !== null ? u.stats.avgRating : '—'}
+                        <span className={`flex items-center gap-1 text-xs ${getRatingTextClass(u.stats.avgRating)}`}>
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${getRatingDotClass(u.stats.avgRating)}`} />
+                          {u.stats.avgRating !== null
+                            ? `${u.stats.avgRating}/10`
+                            : <span className="flex items-center gap-1">— <span className="px-1 py-0.5 rounded bg-red-100 dark:bg-red-950/50 text-red-500 dark:text-red-400 text-[10px] font-medium leading-none">No Rating</span></span>
+                          }
                         </span>
                         <span className="flex items-center gap-1 text-xs text-[var(--muted)]">
                           <Award className="w-3 h-3 text-blue-500" /> {u.stats.certs}

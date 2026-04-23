@@ -12,6 +12,7 @@ import { groupTrainingService } from '@/services/groupTraining.service';
 import { memberTrainingService } from '@/services/memberTraining.service';
 import { certificateService } from '@/services/certificate.service';
 import { userService } from '@/services/user.service';
+import { getRatingBg, getRatingTextClass, getRatingDotClass, computeAvgRating, groupRatingsByRole } from '@/lib/rating';
 import { Modal } from '@/components/ui/Modal';
 import { Notification } from '@/components/ui/Notification';
 import { useNotification } from '@/hooks/useNotification';
@@ -30,14 +31,19 @@ interface GroupTraining {
   startedAt?: string;
   completedAt?: string;
 }
+interface RatingEntry {
+  _id?: string;
+  ratedBy: { _id: string; fullName: string; role: string };
+  raterRole: string;
+  rating: number;
+  ratedAt: string;
+}
 interface MemberTraining {
   _id: string;
   member: User;
   training?: { _id: string; title: string };
   groupTraining?: { status: string };
-  rating: number | null;
-  ratedBy?: { fullName: string };
-  ratedAt?: string;
+  ratings: RatingEntry[];
 }
 interface Certificate {
   _id: string;
@@ -48,6 +54,7 @@ interface Certificate {
   issuedAt: string;
   status: 'Active' | 'Revoked';
 }
+interface GroupAssignee { _id: string; fullName: string; phone: string; role: string }
 interface Group {
   _id: string;
   title: string;
@@ -56,6 +63,8 @@ interface Group {
   members: User[];
   org: { title: string };
   isActive: boolean;
+  teamLeaders?: GroupAssignee[];
+  secretaries?: GroupAssignee[];
 }
 
 type Tab = 'overview' | 'trainings' | 'members';
@@ -110,8 +119,10 @@ export default function GroupDetailsPage() {
 
   const { notification, notify } = useNotification();
 
-  const canManage = ['Super Admin', 'Org Owner', 'Manager'].includes(authUser?.role ?? '');
-  const canUpdateStatus = ['Org Owner', 'Manager', 'Instructor'].includes(authUser?.role ?? '');
+  const GEO_ADMIN_ROLES = ['District Admin', 'Upazila Admin', 'Union Admin', 'Ward Admin'];
+  const canManage = ['Super Admin', 'Org Owner', 'Manager', ...GEO_ADMIN_ROLES].includes(authUser?.role ?? '');
+  const canUpdateStatus = ['Org Owner', 'Manager', 'Instructor', 'Team Leader', 'Secretary', ...GEO_ADMIN_ROLES].includes(authUser?.role ?? '');
+  const canRate = ['Org Owner', 'Manager', 'Instructor', 'Team Leader', 'Secretary'].includes(authUser?.role ?? '');
 
   const fetchGroup = useCallback(async () => {
     try {
@@ -269,25 +280,62 @@ export default function GroupDetailsPage() {
 
       {/* Overview Tab */}
       {tab === 'overview' && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[
-            { label: 'Members', value: group.members.length, icon: Users, color: 'text-blue-500' },
-            { label: 'Trainings', value: groupTrainings.length, icon: BookOpen, color: 'text-purple-500' },
-            { label: 'Completed', value: groupTrainings.filter(g => g.status === 'Completed').length, icon: CheckCircle, color: 'text-green-500' },
-          ].map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <div key={stat.label} className="bg-[var(--card)] rounded-xl border border-[var(--card-border)] p-5 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[var(--accent)] flex items-center justify-center">
-                  <Icon className={`w-6 h-6 ${stat.color}`} />
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { label: 'Members', value: group.members.length, icon: Users, color: 'text-blue-500' },
+              { label: 'Trainings', value: groupTrainings.length, icon: BookOpen, color: 'text-purple-500' },
+              { label: 'Completed', value: groupTrainings.filter(g => g.status === 'Completed').length, icon: CheckCircle, color: 'text-green-500' },
+            ].map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <div key={stat.label} className="bg-[var(--card)] rounded-xl border border-[var(--card-border)] p-5 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-[var(--accent)] flex items-center justify-center">
+                    <Icon className={`w-6 h-6 ${stat.color}`} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-[var(--foreground)]">{stat.value}</p>
+                    <p className="text-sm text-[var(--muted)]">{stat.label}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Team Leaders & Secretaries */}
+          {canManage && (
+            <div className="bg-[var(--card)] rounded-xl border border-[var(--card-border)] p-5">
+              <h3 className="font-semibold text-[var(--foreground)] mb-4 text-sm">Group Assignees</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-medium text-[var(--muted)] mb-2">Team Leaders</p>
+                  <div className="flex flex-wrap gap-2">
+                    {group.teamLeaders?.map((tl) => (
+                      <span key={tl._id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400 text-xs font-medium">
+                        {tl.fullName}
+                      </span>
+                    ))}
+                    {(!group.teamLeaders || group.teamLeaders.length === 0) && (
+                      <span className="text-xs text-[var(--muted)]">None assigned</span>
+                    )}
+                  </div>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-[var(--foreground)]">{stat.value}</p>
-                  <p className="text-sm text-[var(--muted)]">{stat.label}</p>
+                  <p className="text-xs font-medium text-[var(--muted)] mb-2">Secretaries</p>
+                  <div className="flex flex-wrap gap-2">
+                    {group.secretaries?.map((s) => (
+                      <span key={s._id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-50 dark:bg-cyan-950/30 text-cyan-700 dark:text-cyan-400 text-xs font-medium">
+                        {s.fullName}
+                      </span>
+                    ))}
+                    {(!group.secretaries || group.secretaries.length === 0) && (
+                      <span className="text-xs text-[var(--muted)]">None assigned</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          )}
         </div>
       )}
 
@@ -395,10 +443,10 @@ export default function GroupDetailsPage() {
         });
         const ratingMap: Record<string, number[]> = {};
         allGroupMemberTrainings.forEach((mt) => {
-          if (mt.rating !== null) {
+          mt.ratings?.forEach((r) => {
             if (!ratingMap[mt.member._id]) ratingMap[mt.member._id] = [];
-            ratingMap[mt.member._id].push(mt.rating);
-          }
+            ratingMap[mt.member._id].push(r.rating);
+          });
         });
         Object.entries(ratingMap).forEach(([id, ratings]) => {
           statsMap[id] = { ...statsMap[id], avgRating: parseFloat((ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)) };
@@ -423,7 +471,7 @@ export default function GroupDetailsPage() {
             ) : filtered.map((m) => {
               const s = statsMap[m._id] ?? { trainings: 0, avgRating: null, certs: 0 };
               return (
-                <div key={m._id} className="bg-[var(--card)] rounded-xl border border-[var(--card-border)] p-4 flex flex-wrap items-center justify-between gap-3">
+                <div key={m._id} className={`rounded-xl border border-[var(--card-border)] p-4 flex flex-wrap items-center justify-between gap-3 ${getRatingBg(s.avgRating)}`}>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium text-[var(--foreground)] text-sm">{m.fullName}</p>
@@ -434,8 +482,12 @@ export default function GroupDetailsPage() {
                       <span className="flex items-center gap-1 text-xs text-[var(--muted)]">
                         <BookOpen className="w-3 h-3" /> {s.trainings} training{s.trainings !== 1 ? 's' : ''}
                       </span>
-                      <span className="flex items-center gap-1 text-xs text-[var(--muted)]">
-                        <Star className="w-3 h-3 text-yellow-500" /> {s.avgRating !== null ? `${s.avgRating}/10` : 'Not rated'}
+                      <span className={`flex items-center gap-1 text-xs ${getRatingTextClass(s.avgRating)}`}>
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${getRatingDotClass(s.avgRating)}`} />
+                        {s.avgRating !== null
+                          ? `${s.avgRating}/10`
+                          : <span className="flex items-center gap-1">— <span className="px-1 py-0.5 rounded bg-red-100 dark:bg-red-950/50 text-red-500 text-[10px] font-medium">No Rating</span></span>
+                        }
                       </span>
                       <span className="flex items-center gap-1 text-xs text-[var(--muted)]">
                         <Award className="w-3 h-3 text-blue-500" /> {s.certs} cert{s.certs !== 1 ? 's' : ''}
@@ -542,7 +594,7 @@ export default function GroupDetailsPage() {
             const q = modalMemberSearch.toLowerCase();
             return mt.member.fullName.toLowerCase().includes(q) || mt.member.phone.includes(q) || (mt.member.userId ?? '').toLowerCase() === q;
           }).map((mt) => (
-            <div key={mt._id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-[var(--accent)]">
+            <div key={mt._id} className={`flex items-center justify-between gap-3 p-3 rounded-lg ${computeAvgRating(mt.ratings) !== null ? getRatingBg(computeAvgRating(mt.ratings)) : 'bg-[var(--accent)]'}`}>
               <div>
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium text-[var(--foreground)]">{mt.member.fullName}</p>
@@ -559,12 +611,26 @@ export default function GroupDetailsPage() {
                   </>
                 ) : (
                   <>
-                    <span className="flex items-center gap-1 text-sm font-semibold text-[var(--foreground)]">
-                      <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                      {mt.rating !== null ? mt.rating : '—'}
-                    </span>
-                    {canUpdateStatus && (
-                      <button onClick={() => setRatingTarget({ mt, value: mt.rating ?? 0 })} className="px-2 py-1 text-xs bg-[var(--card)] border border-[var(--card-border)] rounded hover:border-[var(--primary)] transition-colors">
+                    <div className="flex flex-col items-end gap-1">
+                      {mt.ratings && mt.ratings.length > 0 ? (
+                        <>
+                          {groupRatingsByRole(mt.ratings).map(({ role, avg }) => (
+                            <span key={role} className={`text-xs font-medium ${getRatingTextClass(avg)}`}>
+                              {role}: {avg}/10
+                            </span>
+                          ))}
+                          <span className={`text-sm font-bold ${getRatingTextClass(computeAvgRating(mt.ratings))}`}>
+                            Avg: {computeAvgRating(mt.ratings)}/10
+                          </span>
+                        </>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs text-[var(--muted)]">
+                          <span className="px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/50 text-red-500 dark:text-red-400 text-[10px] font-medium">No Rating Yet</span>
+                        </span>
+                      )}
+                    </div>
+                    {canRate && (
+                      <button onClick={() => setRatingTarget({ mt, value: 0 })} className="px-2 py-1 text-xs bg-[var(--card)] border border-[var(--card-border)] rounded hover:border-[var(--primary)] transition-colors">
                         Rate
                       </button>
                     )}

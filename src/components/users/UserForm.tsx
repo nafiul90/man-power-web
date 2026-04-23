@@ -6,7 +6,10 @@ import { useState, useEffect } from 'react';
 import { User } from '@/lib/auth';
 import { groupService } from '@/services/group.service';
 
-const ROLES = ['Super Admin', 'Org Owner', 'Manager', 'Instructor', 'Accountant', 'Member'] as const;
+const ROLES = [
+  'Super Admin', 'Org Owner', 'Manager', 'Instructor', 'Accountant', 'Member',
+  'Team Leader', 'Secretary', 'District Admin', 'Upazila Admin', 'Union Admin', 'Ward Admin',
+] as const;
 
 const baseSchema = z.object({
   fullName: z.string().min(1, 'Full name is required'),

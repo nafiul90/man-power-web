@@ -5,6 +5,8 @@ export interface GroupPayload {
   ward?: string;
   category?: string;
   members?: string[];
+  teamLeaders?: string[];
+  secretaries?: string[];
 }
 
 export const groupService = {
@@ -13,4 +15,6 @@ export const groupService = {
   create: (data: GroupPayload) => api.post('/groups', data),
   update: (id: string, data: Partial<GroupPayload>) => api.put(`/groups/${id}`, data),
   delete: (id: string) => api.delete(`/groups/${id}`),
+  updateAssignees: (id: string, data: { teamLeaders?: string[]; secretaries?: string[] }) =>
+    api.put(`/groups/${id}/assignees`, data),
 };

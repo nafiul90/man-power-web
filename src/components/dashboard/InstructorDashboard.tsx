@@ -21,10 +21,11 @@ interface GroupTraining {
   startedAt?: string;
   completedAt?: string;
 }
+interface RatingEntry { raterRole: string; rating: number; ratedBy?: { fullName: string } }
 interface MemberTraining {
   _id: string;
   member: { _id: string; fullName: string; phone: string; userId?: string };
-  rating: number | null;
+  ratings: RatingEntry[];
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -275,9 +276,11 @@ export function InstructorDashboard() {
                   <>
                     <span className="flex items-center gap-1 text-sm font-semibold">
                       <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                      {mt.rating !== null ? mt.rating : '—'}
+                      {mt.ratings && mt.ratings.length > 0
+                        ? (mt.ratings.reduce((a, b) => a + b.rating, 0) / mt.ratings.length).toFixed(1)
+                        : '—'}
                     </span>
-                    <button onClick={() => setRatingTarget({ mt, value: mt.rating ?? 0 })} className="px-2 py-1 text-xs bg-[var(--card)] border border-[var(--card-border)] rounded hover:border-[var(--primary)] transition-colors">Rate</button>
+                    <button onClick={() => setRatingTarget({ mt, value: 0 })} className="px-2 py-1 text-xs bg-[var(--card)] border border-[var(--card-border)] rounded hover:border-[var(--primary)] transition-colors">Rate</button>
                   </>
                 )}
               </div>
