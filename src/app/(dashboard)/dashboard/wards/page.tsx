@@ -1,6 +1,7 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit, Trash2, Search, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useCallback, use } from 'react';
+import { Plus, Edit, Trash2, Search, MapPin, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import { wardService, WardPayload } from '@/services/ward.service';
 import { adminAreaService } from '@/services/adminArea.service';
 import { userService } from '@/services/user.service';
@@ -195,7 +196,13 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
   );
 }
 
-export default function WardsPage() {
+export default function WardsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ union?: string; parentName?: string }>;
+}) {
+  const { union: unionFilter, parentName } = use(searchParams);
+
   const [wards, setWards] = useState<Ward[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -212,13 +219,14 @@ export default function WardsPage() {
     try {
       const params: Record<string, string> = { page: String(page), limit: '15' };
       if (search) params.search = search;
+      if (unionFilter) params.union = unionFilter;
       const res = await wardService.getAll(params);
       const d = res.data.data;
       setWards(d.wards);
       setTotal(d.total);
       setPages(d.pages);
     } finally { setLoading(false); }
-  }, [page, search]);
+  }, [page, search, unionFilter]);
 
   useEffect(() => { fetchWards(); }, [fetchWards]);
 
@@ -242,9 +250,24 @@ export default function WardsPage() {
   return (
     <div className="space-y-6">
       <Notification notification={notification} />
+
+      {/* Breadcrumb when filtered by union */}
+      {parentName && (
+        <div className="flex items-center gap-2 text-sm">
+          <Link href="/dashboard/admin-areas/unions" className="flex items-center gap-1.5 text-[var(--primary)] hover:underline font-medium">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            All Unions
+          </Link>
+          <ChevronRight className="w-3.5 h-3.5 text-[var(--muted)]" />
+          <span className="text-[var(--muted)]">{parentName}</span>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">Wards</h1>
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">
+            {parentName ? `Wards in ${parentName}` : 'Wards'}
+          </h1>
           <p className="text-[var(--muted)] text-sm">{total} total wards</p>
         </div>
         <button onClick={() => openModal('create')} className="flex items-center gap-2 px-4 py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white rounded-lg font-medium text-sm transition-all shadow-sm">
@@ -279,7 +302,14 @@ export default function WardsPage() {
                     <div className="w-8 h-8 rounded-lg bg-[var(--primary)] flex items-center justify-center shrink-0">
                       <MapPin className="w-4 h-4 text-white" />
                     </div>
-                    <span className="font-medium text-[var(--foreground)]">{w.title}</span>
+                    <Link
+                      href={`/dashboard/groups?wardId=${w._id}&wardTitle=${encodeURIComponent(w.title)}`}
+                      className="font-medium text-[var(--primary)] hover:underline flex items-center gap-1 group"
+                      title={`View groups in ${w.title}`}
+                    >
+                      {w.title}
+                      <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </Link>
                   </div>
                 </td>
                 <td className="px-4 py-3 hidden lg:table-cell">

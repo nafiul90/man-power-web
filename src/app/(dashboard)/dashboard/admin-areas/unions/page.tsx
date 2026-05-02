@@ -1,2 +1,10 @@
 import { AdminAreaList } from '@/components/wards/AdminAreaList';
-export default function UnionsPage() { return <AdminAreaList type="Union" />; }
+
+export default async function UnionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ parentId?: string; parentName?: string }>;
+}) {
+  const { parentId, parentName } = await searchParams;
+  return <AdminAreaList type="Union" parentId={parentId} parentName={parentName} />;
+}

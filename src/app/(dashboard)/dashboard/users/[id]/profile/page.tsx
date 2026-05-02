@@ -411,7 +411,7 @@ export default function MemberProfilePage() {
                   </div>
                   <div>
                     <p className="font-medium text-[var(--foreground)] text-sm">{c.training.title}</p>
-                    <p className="text-xs text-[var(--muted)]">{c.certificateNo} · {c.group.title}</p>
+                    <p className="text-xs text-[var(--muted)]">{c.certificateNo} · {c.group?.title}</p>
                     <p className="text-xs text-[var(--muted)]">Issued by {c.issuedBy.fullName} · {new Date(c.issuedAt).toLocaleDateString()}</p>
                   </div>
                 </div>

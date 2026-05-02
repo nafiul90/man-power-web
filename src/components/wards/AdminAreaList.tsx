@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit, Trash2, Search, MapPin } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, MapPin, ChevronRight, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import { adminAreaService, AreaType } from '@/services/adminArea.service';
 import { userService } from '@/services/user.service';
 import { Modal } from '@/components/ui/Modal';
@@ -19,9 +20,46 @@ const PARENT_TYPE: Record<AreaType, AreaType | null> = {
   Division: null, District: 'Division', Upazila: 'District', Union: 'Upazila',
 };
 
+// Where clicking a row navigates (drill into children)
+const CHILD_HREF: Partial<Record<AreaType, string>> = {
+  Division: '/dashboard/admin-areas/districts',
+  District: '/dashboard/admin-areas/upazilas',
+  Upazila: '/dashboard/admin-areas/unions',
+  Union: '/dashboard/wards',
+};
+
+// Query param name used when navigating to child page
+const CHILD_PARAM: Partial<Record<AreaType, string>> = {
+  Division: 'parentId',
+  District: 'parentId',
+  Upazila: 'parentId',
+  Union: 'union',
+};
+
+// Human-readable label for child type
+const CHILD_LABEL: Partial<Record<AreaType, string>> = {
+  Division: 'Districts',
+  District: 'Upazilas',
+  Upazila: 'Unions',
+  Union: 'Wards',
+};
+
+// Back link for breadcrumb
+const BACK_HREF: Partial<Record<AreaType, string>> = {
+  District: '/dashboard/admin-areas/divisions',
+  Upazila: '/dashboard/admin-areas/districts',
+  Union: '/dashboard/admin-areas/upazilas',
+};
+
 const inputClass = 'w-full px-4 py-2.5 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all text-sm';
 
-export function AdminAreaList({ type }: { type: AreaType }) {
+interface Props {
+  type: AreaType;
+  parentId?: string;
+  parentName?: string;
+}
+
+export function AdminAreaList({ type, parentId, parentName }: Props) {
   const [areas, setAreas] = useState<AdminArea[]>([]);
   const [parents, setParents] = useState<AdminArea[]>([]);
   const [total, setTotal] = useState(0);
@@ -30,7 +68,7 @@ export function AdminAreaList({ type }: { type: AreaType }) {
   const [modal, setModal] = useState<'create' | 'edit' | 'delete' | null>(null);
   const [selected, setSelected] = useState<AdminArea | null>(null);
   const [name, setName] = useState('');
-  const [parentId, setParentId] = useState('');
+  const [formParentId, setFormParentId] = useState('');
   const [selectedAdmins, setSelectedAdmins] = useState<string[]>([]);
   const [adminUsers, setAdminUsers] = useState<{ _id: string; fullName: string; phone?: string }[]>([]);
   const [adminSearch, setAdminSearch] = useState('');
@@ -38,17 +76,22 @@ export function AdminAreaList({ type }: { type: AreaType }) {
   const { notification, notify } = useNotification();
 
   const parentType = PARENT_TYPE[type];
+  const childHref = CHILD_HREF[type];
+  const childParam = CHILD_PARAM[type];
+  const childLabel = CHILD_LABEL[type];
+  const backHref = BACK_HREF[type];
 
   const fetchAreas = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string> = { type, limit: '200' };
       if (search) params.search = search;
+      if (parentId) params.parentId = parentId;
       const res = await adminAreaService.getAll(params);
       setAreas(res.data.data.areas);
       setTotal(res.data.data.total);
     } finally { setLoading(false); }
-  }, [type, search]);
+  }, [type, search, parentId]);
 
   const fetchParents = useCallback(async () => {
     if (!parentType) return;
@@ -68,20 +111,34 @@ export function AdminAreaList({ type }: { type: AreaType }) {
     }
   }, [modal, type]);
 
-  const openCreate = () => { setName(''); setParentId(''); setSelectedAdmins([]); setAdminSearch(''); setSelected(null); setModal('create'); };
-  const openEdit = (a: AdminArea) => { setName(a.name); setParentId(a.parent?._id ?? ''); setSelectedAdmins((a.admins ?? []).map((ad) => ad._id)); setAdminSearch(''); setSelected(a); setModal('edit'); };
-  const closeModal = () => { setModal(null); setSelected(null); setName(''); setParentId(''); setSelectedAdmins([]); setAdminSearch(''); };
+  const openCreate = () => {
+    setName('');
+    setFormParentId(parentId ?? '');
+    setSelectedAdmins([]);
+    setAdminSearch('');
+    setSelected(null);
+    setModal('create');
+  };
+  const openEdit = (a: AdminArea) => {
+    setName(a.name);
+    setFormParentId(a.parent?._id ?? '');
+    setSelectedAdmins((a.admins ?? []).map((ad) => ad._id));
+    setAdminSearch('');
+    setSelected(a);
+    setModal('edit');
+  };
+  const closeModal = () => { setModal(null); setSelected(null); setName(''); setFormParentId(''); setSelectedAdmins([]); setAdminSearch(''); };
 
   const handleSave = async () => {
     if (!name.trim()) return notify('error', 'Name is required.');
-    if (parentType && !parentId) return notify('error', `Please select a ${parentType}.`);
+    if (parentType && !formParentId) return notify('error', `Please select a ${parentType}.`);
     setSubmitting(true);
     try {
       if (modal === 'edit' && selected) {
-        await adminAreaService.update(selected._id, { name: name.trim(), parent: parentId || undefined, admins: selectedAdmins });
+        await adminAreaService.update(selected._id, { name: name.trim(), parent: formParentId || undefined, admins: selectedAdmins });
         notify('success', `${type} updated.`);
       } else {
-        await adminAreaService.create({ name: name.trim(), type, parent: parentId || undefined, admins: selectedAdmins });
+        await adminAreaService.create({ name: name.trim(), type, parent: formParentId || undefined, admins: selectedAdmins });
         notify('success', `${type} created.`);
       }
       closeModal();
@@ -106,12 +163,29 @@ export function AdminAreaList({ type }: { type: AreaType }) {
     } finally { setSubmitting(false); }
   };
 
+  const colSpan = ADMIN_ROLE[type] ? 4 : 3;
+
   return (
     <div className="space-y-6">
       <Notification notification={notification} />
+
+      {/* Breadcrumb when filtered by parent */}
+      {parentName && backHref && (
+        <div className="flex items-center gap-2 text-sm">
+          <Link href={backHref} className="flex items-center gap-1.5 text-[var(--primary)] hover:underline font-medium">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            All {type}s
+          </Link>
+          <ChevronRight className="w-3.5 h-3.5 text-[var(--muted)]" />
+          <span className="text-[var(--muted)]">{parentName}</span>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">{type}s</h1>
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">
+            {parentName ? `${type}s in ${parentName}` : `${type}s`}
+          </h1>
           <p className="text-[var(--muted)] text-sm">{total} total</p>
         </div>
         <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white rounded-lg font-medium text-sm transition-all shadow-sm">
@@ -136,9 +210,9 @@ export function AdminAreaList({ type }: { type: AreaType }) {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={ADMIN_ROLE[type] ? 4 : 3} className="text-center py-12 text-[var(--muted)]">Loading...</td></tr>
+              <tr><td colSpan={colSpan} className="text-center py-12 text-[var(--muted)]">Loading...</td></tr>
             ) : areas.length === 0 ? (
-              <tr><td colSpan={ADMIN_ROLE[type] ? 4 : 3} className="text-center py-12 text-[var(--muted)]">No {type.toLowerCase()}s found.</td></tr>
+              <tr><td colSpan={colSpan} className="text-center py-12 text-[var(--muted)]">No {type.toLowerCase()}s found.</td></tr>
             ) : areas.map((a) => (
               <tr key={a._id} className="border-b border-[var(--card-border)] hover:bg-[var(--accent)]/30 transition-colors">
                 <td className="px-4 py-3">
@@ -146,7 +220,18 @@ export function AdminAreaList({ type }: { type: AreaType }) {
                     <div className="w-8 h-8 rounded-lg bg-[var(--accent)] flex items-center justify-center shrink-0">
                       <MapPin className="w-4 h-4 text-[var(--primary)]" />
                     </div>
-                    <span className="font-medium text-[var(--foreground)]">{a.name}</span>
+                    {childHref && childParam ? (
+                      <Link
+                        href={`${childHref}?${childParam}=${a._id}&parentName=${encodeURIComponent(a.name)}`}
+                        className="font-medium text-[var(--primary)] hover:underline flex items-center gap-1 group"
+                        title={`View ${childLabel} of ${a.name}`}
+                      >
+                        {a.name}
+                        <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </Link>
+                    ) : (
+                      <span className="font-medium text-[var(--foreground)]">{a.name}</span>
+                    )}
                   </div>
                 </td>
                 {parentType && <td className="px-4 py-3 text-[var(--muted)] hidden sm:table-cell">{a.parent?.name ?? '—'}</td>}
@@ -180,7 +265,7 @@ export function AdminAreaList({ type }: { type: AreaType }) {
           {parentType && (
             <div>
               <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">{parentType} *</label>
-              <select value={parentId} onChange={(e) => setParentId(e.target.value)} className={inputClass}>
+              <select value={formParentId} onChange={(e) => setFormParentId(e.target.value)} className={inputClass}>
                 <option value="">Select {parentType}</option>
                 {parents.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}
               </select>

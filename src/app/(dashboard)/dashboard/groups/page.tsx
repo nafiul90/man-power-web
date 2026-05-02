@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Edit, Trash2, UsersRound, Search, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo, use } from 'react';
+import { Plus, Edit, Trash2, UsersRound, Search, ChevronLeft, ChevronRight, ExternalLink, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { groupService, GroupPayload } from '@/services/group.service';
 import { categoryService } from '@/services/category.service';
@@ -277,7 +277,13 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
   );
 }
 
-export default function GroupsPage() {
+export default function GroupsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ wardId?: string; wardTitle?: string }>;
+}) {
+  const { wardId: wardFilter, wardTitle } = use(searchParams);
+
   const [groups, setGroups] = useState<Group[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -294,13 +300,14 @@ export default function GroupsPage() {
     try {
       const params: Record<string, string> = { page: String(page), limit: '12' };
       if (search) params.search = search;
+      if (wardFilter) params.wardId = wardFilter;
       const res = await groupService.getAll(params);
       const d = res.data.data;
       setGroups(d.groups);
       setTotal(d.total);
       setPages(d.pages);
     } finally { setLoading(false); }
-  }, [page, search]);
+  }, [page, search, wardFilter]);
 
   useEffect(() => { fetchGroups(); }, [fetchGroups]);
 
@@ -322,9 +329,24 @@ export default function GroupsPage() {
   return (
     <div className="space-y-6">
       <Notification notification={notification} />
+
+      {/* Breadcrumb when filtered by ward */}
+      {wardTitle && (
+        <div className="flex items-center gap-2 text-sm">
+          <Link href="/dashboard/wards" className="flex items-center gap-1.5 text-[var(--primary)] hover:underline font-medium">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            All Wards
+          </Link>
+          <span className="text-[var(--muted)]">›</span>
+          <span className="text-[var(--muted)]">{wardTitle}</span>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">Groups</h1>
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">
+            {wardTitle ? `Groups in ${wardTitle}` : 'Groups'}
+          </h1>
           <p className="text-[var(--muted)] text-sm">{total} total groups</p>
         </div>
         <button onClick={() => openModal('create')} className="flex items-center gap-2 px-4 py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white rounded-lg font-medium text-sm transition-all shadow-sm">
