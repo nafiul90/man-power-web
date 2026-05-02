@@ -209,7 +209,7 @@ export default function CertificatesPage() {
                   </td>
                   <td className="px-4 py-3 text-[var(--muted)] hidden md:table-cell">{c.training.title}</td>
                   <td className="px-4 py-3 hidden lg:table-cell">
-                    <Link href={`/dashboard/groups/${c.group._id}`} className="text-[var(--primary)] hover:underline text-sm">{c.group.title}</Link>
+                    <Link href={`/dashboard/groups/${c.group?._id}`} className="text-[var(--primary)] hover:underline text-sm">{c.group?.title}</Link>
                   </td>
                   <td className="px-4 py-3 text-[var(--muted)] hidden sm:table-cell text-xs">
                     <p>{new Date(c.issuedAt).toLocaleDateString()}</p>
