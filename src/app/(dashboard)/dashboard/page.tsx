@@ -5,14 +5,23 @@ import { OrgOwnerDashboard } from '@/components/dashboard/OrgOwnerDashboard';
 import { InstructorDashboard } from '@/components/dashboard/InstructorDashboard';
 import { TeamLeaderDashboard } from '@/components/dashboard/TeamLeaderDashboard';
 import { DefaultDashboard } from '@/components/dashboard/DefaultDashboard';
+import { DashboardGallery } from '@/components/dashboard/DashboardGallery';
 
 const GEO_ADMIN_ROLES = ['District Admin', 'Upazila Admin', 'Union Admin', 'Ward Admin'];
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  if (user?.role === 'Super Admin') return <SuperAdminDashboard />;
-  if (user?.role === 'Org Owner' || GEO_ADMIN_ROLES.includes(user?.role ?? '')) return <OrgOwnerDashboard />;
-  if (user?.role === 'Instructor') return <InstructorDashboard />;
-  if (user?.role === 'Team Leader' || user?.role === 'Secretary') return <TeamLeaderDashboard />;
-  return <DefaultDashboard />;
+  let content;
+  if (user?.role === 'Super Admin') content = <SuperAdminDashboard />;
+  else if (user?.role === 'Org Owner' || GEO_ADMIN_ROLES.includes(user?.role ?? '')) content = <OrgOwnerDashboard />;
+  else if (user?.role === 'Instructor') content = <InstructorDashboard />;
+  else if (user?.role === 'Team Leader' || user?.role === 'Secretary') content = <TeamLeaderDashboard />;
+  else content = <DefaultDashboard />;
+
+  return (
+    <>
+      {content}
+      <DashboardGallery />
+    </>
+  );
 }
