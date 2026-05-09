@@ -1,7 +1,8 @@
 'use client';
-import { useState, useEffect, useCallback, use } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { Plus, Edit, Trash2, Search, MapPin, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { wardService, WardPayload } from '@/services/ward.service';
 import { adminAreaService } from '@/services/adminArea.service';
 import { userService } from '@/services/user.service';
@@ -196,12 +197,10 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
   );
 }
 
-export default function WardsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ union?: string; parentName?: string }>;
-}) {
-  const { union: unionFilter, parentName } = use(searchParams);
+function WardsPageInner() {
+  const sp = useSearchParams();
+  const unionFilter = sp.get('union') ?? undefined;
+  const parentName = sp.get('parentName') ?? undefined;
 
   const [wards, setWards] = useState<Ward[]>([]);
   const [total, setTotal] = useState(0);
@@ -361,5 +360,13 @@ export default function WardsPage({
         </div>
       </Modal>
     </div>
+  );
+}
+
+export default function WardsPage() {
+  return (
+    <Suspense fallback={<p className="text-center py-12 text-[var(--muted)]">Loading...</p>}>
+      <WardsPageInner />
+    </Suspense>
   );
 }
