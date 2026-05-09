@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit, Trash2, Search, MapPin, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, MapPin, ChevronRight, ArrowLeft, UsersRound } from 'lucide-react';
 import Link from 'next/link';
 import { adminAreaService, AreaType } from '@/services/adminArea.service';
 import { userService } from '@/services/user.service';
@@ -250,6 +250,13 @@ export function AdminAreaList({ type, parentId, parentName }: Props) {
                 )}
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
+                    <Link
+                      href={`/dashboard/groups?${type.toLowerCase()}=${a._id}&parentName=${encodeURIComponent(a.name)}`}
+                      className="p-1.5 rounded-lg hover:bg-[var(--accent)] text-[var(--muted)] hover:text-[var(--primary)] transition-colors"
+                      title={`Groups in ${a.name}`}
+                    >
+                      <UsersRound className="w-4 h-4" />
+                    </Link>
                     <button onClick={() => openEdit(a)} className="p-1.5 rounded-lg hover:bg-[var(--accent)] text-[var(--muted)] hover:text-[var(--primary)] transition-colors"><Edit className="w-4 h-4" /></button>
                     <button onClick={() => { setSelected(a); setModal('delete'); }} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-[var(--muted)] hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                   </div>

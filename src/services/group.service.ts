@@ -1,9 +1,16 @@
 import api from '@/lib/api';
 
+export type GroupLevel = 'Division' | 'District' | 'Upazila' | 'Union' | 'Ward';
+
 export interface GroupPayload {
   title: string;
-  ward?: string;
-  category?: string;
+  level: GroupLevel;
+  division?: string | null;
+  district?: string | null;
+  upazila?: string | null;
+  union?: string | null;
+  ward?: string | null;
+  category?: string | null;
   members?: string[];
   teamLeaders?: string[];
   secretaries?: string[];
