@@ -1,7 +1,8 @@
 'use client';
-import { useState, useEffect, useCallback, useMemo, use } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { Plus, Edit, Trash2, UsersRound, Search, ChevronLeft, ChevronRight, ExternalLink, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { groupService, GroupPayload } from '@/services/group.service';
 import { categoryService } from '@/services/category.service';
 import { wardService } from '@/services/ward.service';
@@ -277,12 +278,10 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
   );
 }
 
-export default function GroupsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ wardId?: string; wardTitle?: string }>;
-}) {
-  const { wardId: wardFilter, wardTitle } = use(searchParams);
+function GroupsPageInner() {
+  const sp = useSearchParams();
+  const wardFilter = sp.get('wardId') ?? undefined;
+  const wardTitle = sp.get('wardTitle') ?? undefined;
 
   const [groups, setGroups] = useState<Group[]>([]);
   const [total, setTotal] = useState(0);
@@ -434,5 +433,13 @@ export default function GroupsPage({
         </div>
       </Modal>
     </div>
+  );
+}
+
+export default function GroupsPage() {
+  return (
+    <Suspense fallback={<p className="text-center py-12 text-[var(--muted)]">Loading...</p>}>
+      <GroupsPageInner />
+    </Suspense>
   );
 }
