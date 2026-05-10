@@ -15,6 +15,7 @@ const ROLES = [
 const baseSchema = z.object({
   fullName: z.string().min(1, 'Full name is required'),
   phone: z.string().min(1, 'Phone is required'),
+  nidNumber: z.string().min(1, 'NID number is required'),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
   password: z.string().optional(),
   gender: z.enum(['Male', 'Female', 'Other']).optional(),
@@ -78,6 +79,7 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
       ? {
           fullName: user.fullName,
           phone: user.phone,
+          nidNumber: user.nidNumber ?? '',
           email: user.email || '',
           gender: (user.gender as FormData['gender']) || undefined,
           role: user.role as FormData['role'],
@@ -114,10 +116,17 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
         </div>
       </div>
 
-      <div>
-        <label className={labelClass}>Email</label>
-        <input {...register('email')} type="email" className={inputClass} placeholder="john@example.com" />
-        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className={labelClass}>NID Number *</label>
+          <input {...register('nidNumber')} className={inputClass} placeholder="National ID number" inputMode="numeric" />
+          {errors.nidNumber && <p className="text-red-500 text-xs mt-1">{errors.nidNumber.message}</p>}
+        </div>
+        <div>
+          <label className={labelClass}>Email</label>
+          <input {...register('email')} type="email" className={inputClass} placeholder="john@example.com" />
+          {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+        </div>
       </div>
 
       {!isEdit && (

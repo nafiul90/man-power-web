@@ -2,6 +2,7 @@ export interface User {
   _id: string;
   fullName: string;
   phone: string;
+  nidNumber?: string;
   email?: string;
   gender?: string;
   role: string;

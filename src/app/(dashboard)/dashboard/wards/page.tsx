@@ -41,8 +41,12 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
   const [thanas, setThanas] = useState<NamedRef[]>([]);
   const [unions, setUnions] = useState<NamedRef[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  // Locked IDs derive from the current user's geoScope; their dropdowns become disabled.
-  const [locked, setLocked] = useState<{ division?: string; district?: string; upazila?: string; thana?: string; union?: string }>({});
+  // Allowed IDs per level from the current user's geoScope.
+  // - undefined: free choice (any value)
+  // - empty array: no territory assigned (shouldn't normally happen)
+  // - 1 element: locked to that single value
+  // - 2+ elements: dropdown restricted to those values, user picks one
+  const [allowed, setAllowed] = useState<{ division?: string[]; district?: string[]; upazila?: string[]; thana?: string[]; union?: string[] }>({});
   const { notification, notify } = useNotification();
 
   useEffect(() => {
@@ -58,13 +62,26 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
       userService.getMe().then((r) => {
         const me = r.data.data;
         const gs = me?.geoScope ?? {};
-        const lk: typeof locked = {};
-        if (gs.divisionId) { lk.division = String(gs.divisionId); setDivisionId(String(gs.divisionId)); }
-        if (gs.districtId) { lk.district = String(gs.districtId); setDistrictId(String(gs.districtId)); }
-        if (gs.upazilaId)  { lk.upazila  = String(gs.upazilaId);  setUpazilaId(String(gs.upazilaId));   }
-        if (gs.thanaId)    { lk.thana    = String(gs.thanaId);    setThanaId(String(gs.thanaId));       }
-        if (gs.unionId)    { lk.union    = String(gs.unionId);    setUnionId(String(gs.unionId));       }
-        setLocked(lk);
+        const next: typeof allowed = {};
+        const apply = (key: 'division' | 'district' | 'upazila' | 'thana' | 'union', ids: unknown) => {
+          if (!Array.isArray(ids)) return;
+          const list = ids.map(String);
+          next[key] = list;
+          if (list.length === 1) {
+            const v = list[0];
+            if (key === 'division') setDivisionId(v);
+            else if (key === 'district') setDistrictId(v);
+            else if (key === 'upazila') setUpazilaId(v);
+            else if (key === 'thana') setThanaId(v);
+            else if (key === 'union') setUnionId(v);
+          }
+        };
+        apply('division', gs.divisionIds);
+        apply('district', gs.districtIds);
+        apply('upazila',  gs.upazilaIds);
+        apply('thana',    gs.thanaIds);
+        apply('union',    gs.unionIds);
+        setAllowed(next);
       }).catch(() => {});
     }
   }, [ward]);
@@ -146,43 +163,61 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
           <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Ward Title *</label>
           <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder="e.g. Dhaka South Ward" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Division{locked.division ? ' (locked)' : ''}</label>
-            <select value={divisionId} onChange={(e) => { setDivisionId(e.target.value); setDistrictId(''); setUpazilaId(''); setThanaId(''); setUnionId(''); }} disabled={!!locked.division} className={inputClass + ' disabled:opacity-60 disabled:cursor-not-allowed'}>
-              <option value="">Select Division</option>
-              {divisions.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">District{locked.district ? ' (locked)' : ''}</label>
-            <select value={districtId} onChange={(e) => { setDistrictId(e.target.value); setUpazilaId(''); setThanaId(''); setUnionId(''); }} disabled={!divisionId || !!locked.district} className={inputClass + ' disabled:opacity-60 disabled:cursor-not-allowed'}>
-              <option value="">Select District</option>
-              {districts.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Upazila{locked.upazila ? ' (locked)' : ''}</label>
-            <select value={upazilaId} onChange={(e) => { setUpazilaId(e.target.value); setThanaId(''); setUnionId(''); }} disabled={!districtId || !!locked.upazila} className={inputClass + ' disabled:opacity-60 disabled:cursor-not-allowed'}>
-              <option value="">Select Upazila</option>
-              {upazilas.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Thana{locked.thana ? ' (locked)' : ''}</label>
-            <select value={thanaId} onChange={(e) => { setThanaId(e.target.value); setUnionId(''); }} disabled={!upazilaId || !!locked.thana} className={inputClass + ' disabled:opacity-60 disabled:cursor-not-allowed'}>
-              <option value="">Select Thana</option>
-              {thanas.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Union{locked.union ? ' (locked)' : ''}</label>
-            <select value={unionId} onChange={(e) => setUnionId(e.target.value)} disabled={!thanaId || !!locked.union} className={inputClass + ' disabled:opacity-60 disabled:cursor-not-allowed'}>
-              <option value="">Select Union</option>
-              {unions.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
-            </select>
-          </div>
-        </div>
+        {(() => {
+          // Helpers for level locking and option filtering driven by `allowed`.
+          const isLocked = (key: 'division' | 'district' | 'upazila' | 'thana' | 'union') =>
+            (allowed[key]?.length ?? 0) === 1;
+          const filterByAllowed = <T extends { _id: string }>(list: T[], key: 'division' | 'district' | 'upazila' | 'thana' | 'union') => {
+            const a = allowed[key];
+            if (!a) return list;
+            const set = new Set(a);
+            return list.filter((x) => set.has(x._id));
+          };
+          const visibleDivisions = filterByAllowed(divisions, 'division');
+          const visibleDistricts = filterByAllowed(districts, 'district');
+          const visibleUpazilas  = filterByAllowed(upazilas,  'upazila');
+          const visibleThanas    = filterByAllowed(thanas,    'thana');
+          const visibleUnions    = filterByAllowed(unions,    'union');
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Division{isLocked('division') ? ' (locked)' : ''}</label>
+                <select value={divisionId} onChange={(e) => { setDivisionId(e.target.value); setDistrictId(''); setUpazilaId(''); setThanaId(''); setUnionId(''); }} disabled={isLocked('division')} className={inputClass + ' disabled:opacity-60 disabled:cursor-not-allowed'}>
+                  <option value="">Select Division</option>
+                  {visibleDivisions.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">District{isLocked('district') ? ' (locked)' : ''}</label>
+                <select value={districtId} onChange={(e) => { setDistrictId(e.target.value); setUpazilaId(''); setThanaId(''); setUnionId(''); }} disabled={!divisionId || isLocked('district')} className={inputClass + ' disabled:opacity-60 disabled:cursor-not-allowed'}>
+                  <option value="">Select District</option>
+                  {visibleDistricts.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Upazila{isLocked('upazila') ? ' (locked)' : ''}</label>
+                <select value={upazilaId} onChange={(e) => { setUpazilaId(e.target.value); setThanaId(''); setUnionId(''); }} disabled={!districtId || isLocked('upazila')} className={inputClass + ' disabled:opacity-60 disabled:cursor-not-allowed'}>
+                  <option value="">Select Upazila</option>
+                  {visibleUpazilas.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Thana{isLocked('thana') ? ' (locked)' : ''}</label>
+                <select value={thanaId} onChange={(e) => { setThanaId(e.target.value); setUnionId(''); }} disabled={!upazilaId || isLocked('thana')} className={inputClass + ' disabled:opacity-60 disabled:cursor-not-allowed'}>
+                  <option value="">Select Thana</option>
+                  {visibleThanas.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Union{isLocked('union') ? ' (locked)' : ''}</label>
+                <select value={unionId} onChange={(e) => setUnionId(e.target.value)} disabled={!thanaId || isLocked('union')} className={inputClass + ' disabled:opacity-60 disabled:cursor-not-allowed'}>
+                  <option value="">Select Union</option>
+                  {visibleUnions.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
+                </select>
+              </div>
+            </div>
+          );
+        })()}
         <div>
           <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
             Ward Admins <span className="text-[var(--muted)] font-normal">({selectedAdmins.length} selected)</span>
