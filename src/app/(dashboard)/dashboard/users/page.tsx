@@ -201,7 +201,7 @@ export default function UsersPage() {
         >
           <option value="">All Roles</option>
           {['Super Admin', 'Org Owner', 'Manager', 'Instructor', 'Accountant', 'Member',
-            'Team Leader', 'Secretary', 'District Admin', 'Upazila Admin', 'Union Admin', 'Ward Admin'].map((r) => (
+            'Team Leader', 'Secretary', 'Division Admin', 'District Admin', 'Upazila Admin', 'Thana Admin', 'Union Admin', 'Ward Admin'].map((r) => (
             <option key={r} value={r}>{r}</option>
           ))}
         </select>

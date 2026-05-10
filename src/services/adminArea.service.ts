@@ -1,6 +1,6 @@
 import api from '@/lib/api';
 
-export type AreaType = 'Division' | 'District' | 'Upazila' | 'Union';
+export type AreaType = 'Division' | 'District' | 'Upazila' | 'Thana' | 'Union';
 
 export interface AdminAreaPayload { name: string; type: AreaType; parent?: string; admins?: string[] }
 

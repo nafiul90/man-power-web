@@ -17,6 +17,7 @@ interface Ward {
   division?: NamedRef | null;
   district?: NamedRef | null;
   upazila?: NamedRef | null;
+  thana?: NamedRef | null;
   union?: NamedRef | null;
   admins?: { _id: string; fullName: string; phone?: string }[];
 }
@@ -28,6 +29,7 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
   const [divisionId, setDivisionId] = useState(ward?.division?._id ?? '');
   const [districtId, setDistrictId] = useState(ward?.district?._id ?? '');
   const [upazilaId, setUpazilaId] = useState(ward?.upazila?._id ?? '');
+  const [thanaId, setThanaId] = useState(ward?.thana?._id ?? '');
   const [unionId, setUnionId] = useState(ward?.union?._id ?? '');
   const [selectedAdmins, setSelectedAdmins] = useState<string[]>(ward?.admins?.map((a) => a._id) ?? []);
   const [adminUsers, setAdminUsers] = useState<{ _id: string; fullName: string; phone?: string }[]>([]);
@@ -36,6 +38,7 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
   const [divisions, setDivisions] = useState<NamedRef[]>([]);
   const [districts, setDistricts] = useState<NamedRef[]>([]);
   const [upazilas, setUpazilas] = useState<NamedRef[]>([]);
+  const [thanas, setThanas] = useState<NamedRef[]>([]);
   const [unions, setUnions] = useState<NamedRef[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const { notification, notify } = useNotification();
@@ -50,9 +53,6 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
   }, []);
 
   useEffect(() => {
-    setDistrictId('');
-    setUpazilaId('');
-    setUnionId('');
     if (divisionId) {
       adminAreaService.getAll({ type: 'District', parentId: divisionId, limit: '300' }).then((r) =>
         setDistricts(r.data.data.areas)
@@ -63,8 +63,6 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
   }, [divisionId]);
 
   useEffect(() => {
-    setUpazilaId('');
-    setUnionId('');
     if (districtId) {
       adminAreaService.getAll({ type: 'Upazila', parentId: districtId, limit: '300' }).then((r) =>
         setUpazilas(r.data.data.areas)
@@ -75,15 +73,24 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
   }, [districtId]);
 
   useEffect(() => {
-    setUnionId('');
     if (upazilaId) {
-      adminAreaService.getAll({ type: 'Union', parentId: upazilaId, limit: '500' }).then((r) =>
+      adminAreaService.getAll({ type: 'Thana', parentId: upazilaId, limit: '300' }).then((r) =>
+        setThanas(r.data.data.areas)
+      ).catch(() => {});
+    } else {
+      setThanas([]);
+    }
+  }, [upazilaId]);
+
+  useEffect(() => {
+    if (thanaId) {
+      adminAreaService.getAll({ type: 'Union', parentId: thanaId, limit: '500' }).then((r) =>
         setUnions(r.data.data.areas)
       ).catch(() => {});
     } else {
       setUnions([]);
     }
-  }, [upazilaId]);
+  }, [thanaId]);
 
   const handleSave = async () => {
     if (!title.trim()) return notify('error', 'Title is required.');
@@ -94,6 +101,7 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
         division: divisionId || null,
         district: districtId || null,
         upazila: upazilaId || null,
+        thana: thanaId || null,
         union: unionId || null,
         admins: selectedAdmins,
       };
@@ -124,28 +132,35 @@ function WardFormModal({ ward, onClose, onSaved }: { ward?: Ward | null; onClose
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Division</label>
-            <select value={divisionId} onChange={(e) => setDivisionId(e.target.value)} className={inputClass}>
+            <select value={divisionId} onChange={(e) => { setDivisionId(e.target.value); setDistrictId(''); setUpazilaId(''); setThanaId(''); setUnionId(''); }} className={inputClass}>
               <option value="">Select Division</option>
               {divisions.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">District</label>
-            <select value={districtId} onChange={(e) => setDistrictId(e.target.value)} disabled={!divisionId} className={inputClass + ' disabled:opacity-50'}>
+            <select value={districtId} onChange={(e) => { setDistrictId(e.target.value); setUpazilaId(''); setThanaId(''); setUnionId(''); }} disabled={!divisionId} className={inputClass + ' disabled:opacity-50'}>
               <option value="">Select District</option>
               {districts.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Upazila</label>
-            <select value={upazilaId} onChange={(e) => setUpazilaId(e.target.value)} disabled={!districtId} className={inputClass + ' disabled:opacity-50'}>
+            <select value={upazilaId} onChange={(e) => { setUpazilaId(e.target.value); setThanaId(''); setUnionId(''); }} disabled={!districtId} className={inputClass + ' disabled:opacity-50'}>
               <option value="">Select Upazila</option>
               {upazilas.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
             </select>
           </div>
           <div>
+            <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Thana</label>
+            <select value={thanaId} onChange={(e) => { setThanaId(e.target.value); setUnionId(''); }} disabled={!upazilaId} className={inputClass + ' disabled:opacity-50'}>
+              <option value="">Select Thana</option>
+              {thanas.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
+            </select>
+          </div>
+          <div>
             <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Union</label>
-            <select value={unionId} onChange={(e) => setUnionId(e.target.value)} disabled={!upazilaId} className={inputClass + ' disabled:opacity-50'}>
+            <select value={unionId} onChange={(e) => setUnionId(e.target.value)} disabled={!thanaId} className={inputClass + ' disabled:opacity-50'}>
               <option value="">Select Union</option>
               {unions.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
             </select>
@@ -244,7 +259,7 @@ function WardsPageInner() {
     finally { setSubmitting(false); }
   };
 
-  const areaLabel = (ward: Ward) => [ward.division?.name, ward.district?.name, ward.upazila?.name, ward.union?.name].filter(Boolean).join(' › ');
+  const areaLabel = (ward: Ward) => [ward.division?.name, ward.district?.name, ward.upazila?.name, ward.thana?.name, ward.union?.name].filter(Boolean).join(' › ');
 
   return (
     <div className="space-y-6">

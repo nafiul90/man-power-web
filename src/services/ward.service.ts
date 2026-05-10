@@ -5,6 +5,7 @@ export interface WardPayload {
   division?: string | null;
   district?: string | null;
   upazila?: string | null;
+  thana?: string | null;
   union?: string | null;
   admins?: string[];
 }

@@ -11,20 +11,23 @@ import { useNotification } from '@/hooks/useNotification';
 interface AdminArea { _id: string; name: string; type: AreaType; parent?: { _id: string; name: string } | null; admins?: { _id: string; fullName: string; phone?: string }[] }
 
 const ADMIN_ROLE: Partial<Record<AreaType, string>> = {
+  Division: 'Division Admin',
   District: 'District Admin',
   Upazila: 'Upazila Admin',
+  Thana: 'Thana Admin',
   Union: 'Union Admin',
 };
 
 const PARENT_TYPE: Record<AreaType, AreaType | null> = {
-  Division: null, District: 'Division', Upazila: 'District', Union: 'Upazila',
+  Division: null, District: 'Division', Upazila: 'District', Thana: 'Upazila', Union: 'Thana',
 };
 
 // Where clicking a row navigates (drill into children)
 const CHILD_HREF: Partial<Record<AreaType, string>> = {
   Division: '/dashboard/admin-areas/districts',
   District: '/dashboard/admin-areas/upazilas',
-  Upazila: '/dashboard/admin-areas/unions',
+  Upazila: '/dashboard/admin-areas/thanas',
+  Thana: '/dashboard/admin-areas/unions',
   Union: '/dashboard/wards',
 };
 
@@ -33,6 +36,7 @@ const CHILD_PARAM: Partial<Record<AreaType, string>> = {
   Division: 'parentId',
   District: 'parentId',
   Upazila: 'parentId',
+  Thana: 'parentId',
   Union: 'union',
 };
 
@@ -40,7 +44,8 @@ const CHILD_PARAM: Partial<Record<AreaType, string>> = {
 const CHILD_LABEL: Partial<Record<AreaType, string>> = {
   Division: 'Districts',
   District: 'Upazilas',
-  Upazila: 'Unions',
+  Upazila: 'Thanas',
+  Thana: 'Unions',
   Union: 'Wards',
 };
 
@@ -48,7 +53,8 @@ const CHILD_LABEL: Partial<Record<AreaType, string>> = {
 const BACK_HREF: Partial<Record<AreaType, string>> = {
   District: '/dashboard/admin-areas/divisions',
   Upazila: '/dashboard/admin-areas/districts',
-  Union: '/dashboard/admin-areas/upazilas',
+  Thana: '/dashboard/admin-areas/upazilas',
+  Union: '/dashboard/admin-areas/thanas',
 };
 
 const inputClass = 'w-full px-4 py-2.5 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all text-sm';

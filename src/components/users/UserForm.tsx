@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 
 const ROLES = [
   'Super Admin', 'Org Owner', 'Manager', 'Instructor', 'Accountant', 'Member',
-  'Team Leader', 'Secretary', 'District Admin', 'Upazila Admin', 'Union Admin', 'Ward Admin',
+  'Team Leader', 'Secretary', 'Division Admin', 'District Admin', 'Upazila Admin', 'Thana Admin', 'Union Admin', 'Ward Admin',
 ] as const;
 
 const baseSchema = z.object({
@@ -41,16 +41,28 @@ export function UserForm({ user, onSubmit, isSubmitting }: UserFormProps) {
   const [groups, setGroups] = useState<Group[]>([]);
   const { user: currentUser } = useAuthStore();
 
+  // Mirrors the backend ALLOWED_ASSIGN_ROLES matrix in user.route.js.
+  const LEAF = ['Team Leader', 'Secretary', 'Instructor', 'Accountant', 'Member'];
   const ROLE_LIMITS: Record<string, string[]> = {
-    'Manager': ['Team Leader', 'Secretary', 'Instructor', 'Member'],
-    'Ward Admin': ['Team Leader', 'Secretary', 'Instructor', 'Member'],
-    'District Admin': ['Team Leader', 'Secretary', 'Instructor', 'Member', 'Ward Admin', 'Union Admin'],
-    'Upazila Admin': ['Team Leader', 'Secretary', 'Instructor', 'Member', 'Ward Admin', 'Union Admin'],
-    'Union Admin': ['Team Leader', 'Secretary', 'Instructor', 'Member', 'Ward Admin'],
+    'Super Admin':    ['Org Owner', 'Manager', 'Division Admin', 'District Admin', 'Upazila Admin', 'Thana Admin', 'Union Admin', 'Ward Admin', ...LEAF, 'Super Admin'],
+    'Org Owner':      ['Manager', 'Division Admin', 'District Admin', 'Upazila Admin', 'Thana Admin', 'Union Admin', 'Ward Admin', ...LEAF],
+    'Manager':        [...LEAF],
+    'Division Admin': ['District Admin', 'Upazila Admin', 'Thana Admin', 'Union Admin', 'Ward Admin', ...LEAF],
+    'District Admin': ['Upazila Admin', 'Thana Admin', 'Union Admin', 'Ward Admin', ...LEAF],
+    'Upazila Admin':  ['Thana Admin', 'Union Admin', 'Ward Admin', ...LEAF],
+    'Thana Admin':    ['Union Admin', 'Ward Admin', ...LEAF],
+    'Union Admin':    ['Ward Admin', ...LEAF],
+    'Ward Admin':     [...LEAF],
+    'Team Leader':    ['Member'],
+    'Secretary':      ['Member'],
   };
 
-  const availableRoles = ROLE_LIMITS[currentUser?.role ?? '']
-    ?? ['Super Admin', 'Org Owner', 'Manager', 'Instructor', 'Accountant', 'Member', 'Team Leader', 'Secretary', 'District Admin', 'Upazila Admin', 'Union Admin', 'Ward Admin'];
+  // When editing an existing user with a role outside the creator's allowed list,
+  // include their current role so the dropdown can render it.
+  const baseRoles = ROLE_LIMITS[currentUser?.role ?? ''] ?? [];
+  const availableRoles = isEdit && user?.role && !baseRoles.includes(user.role)
+    ? [user.role, ...baseRoles]
+    : baseRoles;
 
   const schema = isEdit
     ? baseSchema

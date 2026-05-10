@@ -7,7 +7,7 @@ import { TeamLeaderDashboard } from '@/components/dashboard/TeamLeaderDashboard'
 import { DefaultDashboard } from '@/components/dashboard/DefaultDashboard';
 import { DashboardGallery } from '@/components/dashboard/DashboardGallery';
 
-const GEO_ADMIN_ROLES = ['District Admin', 'Upazila Admin', 'Union Admin', 'Ward Admin'];
+const GEO_ADMIN_ROLES = ['Division Admin', 'District Admin', 'Upazila Admin', 'Thana Admin', 'Union Admin', 'Ward Admin'];
 
 export default function DashboardPage() {
   const { user } = useAuthStore();

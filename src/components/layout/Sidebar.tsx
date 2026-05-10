@@ -30,6 +30,7 @@ const superAdminNav: NavItem[] = [
       { href: '/dashboard/admin-areas/divisions', label: 'Divisions' },
       { href: '/dashboard/admin-areas/districts', label: 'Districts' },
       { href: '/dashboard/admin-areas/upazilas', label: 'Upazilas' },
+      { href: '/dashboard/admin-areas/thanas', label: 'Thanas' },
       { href: '/dashboard/admin-areas/unions', label: 'Unions' },
     ],
   },
@@ -53,6 +54,7 @@ const orgOwnerNav: NavItem[] = [
       { href: '/dashboard/admin-areas/divisions', label: 'Divisions' },
       { href: '/dashboard/admin-areas/districts', label: 'Districts' },
       { href: '/dashboard/admin-areas/upazilas', label: 'Upazilas' },
+      { href: '/dashboard/admin-areas/thanas', label: 'Thanas' },
       { href: '/dashboard/admin-areas/unions', label: 'Unions' },
     ],
   },
@@ -76,6 +78,7 @@ const managerNav: NavItem[] = [
       { href: '/dashboard/admin-areas/divisions', label: 'Divisions' },
       { href: '/dashboard/admin-areas/districts', label: 'Districts' },
       { href: '/dashboard/admin-areas/upazilas', label: 'Upazilas' },
+      { href: '/dashboard/admin-areas/thanas', label: 'Thanas' },
       { href: '/dashboard/admin-areas/unions', label: 'Unions' },
     ],
   },
@@ -106,6 +109,51 @@ const teamLeaderNav: NavItem[] = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
+const divisionAdminNav: NavItem[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/users', label: 'Users', icon: Users },
+  { href: '/dashboard/categories', label: 'Categories', icon: Tags },
+  {
+    href: '/dashboard/admin-areas',
+    label: 'Admin Areas',
+    icon: Map,
+    children: [
+      { href: '/dashboard/admin-areas/divisions', label: 'Divisions' },
+      { href: '/dashboard/admin-areas/districts', label: 'Districts' },
+      { href: '/dashboard/admin-areas/upazilas', label: 'Upazilas' },
+      { href: '/dashboard/admin-areas/thanas', label: 'Thanas' },
+      { href: '/dashboard/admin-areas/unions', label: 'Unions' },
+    ],
+  },
+  { href: '/dashboard/wards', label: 'Wards', icon: MapPin },
+  { href: '/dashboard/groups', label: 'Groups', icon: UsersRound },
+  { href: '/dashboard/trainings', label: 'Trainings', icon: BookOpen },
+  { href: '/dashboard/certificates', label: 'Certificates', icon: Award },
+  { href: '/dashboard/funds', label: 'Funds', icon: Banknote },
+  { href: '/dashboard/installments', label: 'Installments', icon: Receipt },
+];
+
+const thanaAdminNav: NavItem[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/users', label: 'Users', icon: Users },
+  { href: '/dashboard/categories', label: 'Categories', icon: Tags },
+  {
+    href: '/dashboard/admin-areas',
+    label: 'Admin Areas',
+    icon: Map,
+    children: [
+      { href: '/dashboard/admin-areas/thanas', label: 'Thanas' },
+      { href: '/dashboard/admin-areas/unions', label: 'Unions' },
+    ],
+  },
+  { href: '/dashboard/wards', label: 'Wards', icon: MapPin },
+  { href: '/dashboard/groups', label: 'Groups', icon: UsersRound },
+  { href: '/dashboard/trainings', label: 'Trainings', icon: BookOpen },
+  { href: '/dashboard/certificates', label: 'Certificates', icon: Award },
+  { href: '/dashboard/funds', label: 'Funds', icon: Banknote },
+  { href: '/dashboard/installments', label: 'Installments', icon: Receipt },
+];
+
 const districtAdminNav: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/users', label: 'Users', icon: Users },
@@ -117,6 +165,7 @@ const districtAdminNav: NavItem[] = [
     children: [
       { href: '/dashboard/admin-areas/districts', label: 'Districts' },
       { href: '/dashboard/admin-areas/upazilas', label: 'Upazilas' },
+      { href: '/dashboard/admin-areas/thanas', label: 'Thanas' },
       { href: '/dashboard/admin-areas/unions', label: 'Unions' },
     ],
   },
@@ -138,6 +187,7 @@ const upazilaAdminNav: NavItem[] = [
     icon: Map,
     children: [
       { href: '/dashboard/admin-areas/upazilas', label: 'Upazilas' },
+      { href: '/dashboard/admin-areas/thanas', label: 'Thanas' },
       { href: '/dashboard/admin-areas/unions', label: 'Unions' },
     ],
   },
@@ -196,8 +246,10 @@ function getNavByRole(role: string): NavItem[] {
     case 'Team Leader':
     case 'Secretary':
       return teamLeaderNav;
+    case 'Division Admin': return divisionAdminNav;
     case 'District Admin': return districtAdminNav;
     case 'Upazila Admin': return upazilaAdminNav;
+    case 'Thana Admin': return thanaAdminNav;
     case 'Union Admin': return unionAdminNav;
     case 'Ward Admin': return wardAdminNav;
     default: return defaultNav;

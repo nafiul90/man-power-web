@@ -21,6 +21,7 @@ interface Group {
   division?: NamedRef | null;
   district?: NamedRef | null;
   upazila?: NamedRef | null;
+  thana?: NamedRef | null;
   union?: NamedRef | null;
   ward?: SimpleRef | null;
   category?: SimpleRef | null;
@@ -29,7 +30,7 @@ interface Group {
   secretaries?: SimpleRef[];
 }
 
-const LEVELS: GroupLevel[] = ['Division', 'District', 'Upazila', 'Union', 'Ward'];
+const LEVELS: GroupLevel[] = ['Division', 'District', 'Upazila', 'Thana', 'Union', 'Ward'];
 const inputClass = 'w-full px-4 py-2.5 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all text-sm';
 const selectClass = 'w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-xs';
 
@@ -39,6 +40,7 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
   const [divisionId, setDivisionId] = useState(group?.division?._id ?? '');
   const [districtId, setDistrictId] = useState(group?.district?._id ?? '');
   const [upazilaId, setUpazilaId] = useState(group?.upazila?._id ?? '');
+  const [thanaId, setThanaId] = useState(group?.thana?._id ?? '');
   const [unionId, setUnionId] = useState(group?.union?._id ?? '');
   const [wardId, setWardId] = useState(group?.ward?._id ?? '');
   const [categoryId, setCategoryId] = useState(group?.category?._id ?? '');
@@ -46,6 +48,7 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
   const [divisions, setDivisions] = useState<NamedRef[]>([]);
   const [districts, setDistricts] = useState<NamedRef[]>([]);
   const [upazilas, setUpazilas] = useState<NamedRef[]>([]);
+  const [thanas, setThanas] = useState<NamedRef[]>([]);
   const [unions, setUnions] = useState<NamedRef[]>([]);
   const [wards, setWards] = useState<SimpleRef[]>([]);
 
@@ -93,20 +96,25 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
       .then((r) => setUpazilas(r.data.data.areas)).catch(() => {});
   }, [districtId]);
   useEffect(() => {
-    if (!upazilaId) { setUnions([]); return; }
-    adminAreaService.getAll({ type: 'Union', parentId: upazilaId, limit: '500' })
-      .then((r) => setUnions(r.data.data.areas)).catch(() => {});
+    if (!upazilaId) { setThanas([]); return; }
+    adminAreaService.getAll({ type: 'Thana', parentId: upazilaId, limit: '300' })
+      .then((r) => setThanas(r.data.data.areas)).catch(() => {});
   }, [upazilaId]);
+  useEffect(() => {
+    if (!thanaId) { setUnions([]); return; }
+    adminAreaService.getAll({ type: 'Union', parentId: thanaId, limit: '500' })
+      .then((r) => setUnions(r.data.data.areas)).catch(() => {});
+  }, [thanaId]);
 
   // Reset child selections when parent changes (only for non-Ward levels — Ward uses standalone wardId)
   const onLevelChange = (next: GroupLevel) => {
     setLevel(next);
-    // Clear lower-than-required selections to keep state consistent
-    if (next === 'Division') { setDistrictId(''); setUpazilaId(''); setUnionId(''); setWardId(''); }
-    else if (next === 'District') { setUpazilaId(''); setUnionId(''); setWardId(''); }
-    else if (next === 'Upazila') { setUnionId(''); setWardId(''); }
+    if (next === 'Division') { setDistrictId(''); setUpazilaId(''); setThanaId(''); setUnionId(''); setWardId(''); }
+    else if (next === 'District') { setUpazilaId(''); setThanaId(''); setUnionId(''); setWardId(''); }
+    else if (next === 'Upazila') { setThanaId(''); setUnionId(''); setWardId(''); }
+    else if (next === 'Thana') { setUnionId(''); setWardId(''); }
     else if (next === 'Union') { setWardId(''); }
-    else if (next === 'Ward') { setDivisionId(''); setDistrictId(''); setUpazilaId(''); setUnionId(''); }
+    else if (next === 'Ward') { setDivisionId(''); setDistrictId(''); setUpazilaId(''); setThanaId(''); setUnionId(''); }
   };
 
   const filteredUsers = useMemo(() => {
@@ -143,6 +151,7 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
     if (level === 'Division' && !divisionId) return notify('error', 'Select a division.');
     if (level === 'District' && !districtId) return notify('error', 'Select a district.');
     if (level === 'Upazila' && !upazilaId) return notify('error', 'Select an upazila.');
+    if (level === 'Thana' && !thanaId) return notify('error', 'Select a thana.');
     if (level === 'Union' && !unionId) return notify('error', 'Select a union.');
     if (level === 'Ward' && !wardId) return notify('error', 'Select a ward.');
 
@@ -154,6 +163,7 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
         division: level === 'Division' ? divisionId : undefined,
         district: level === 'District' ? districtId : undefined,
         upazila: level === 'Upazila' ? upazilaId : undefined,
+        thana: level === 'Thana' ? thanaId : undefined,
         union: level === 'Union' ? unionId : undefined,
         ward: level === 'Ward' ? wardId : undefined,
         category: categoryId || undefined,
@@ -202,7 +212,7 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Division *</label>
-              <select value={divisionId} onChange={(e) => { setDivisionId(e.target.value); setDistrictId(''); setUpazilaId(''); setUnionId(''); }} className={inputClass}>
+              <select value={divisionId} onChange={(e) => { setDivisionId(e.target.value); setDistrictId(''); setUpazilaId(''); setThanaId(''); setUnionId(''); }} className={inputClass}>
                 <option value="">Select Division</option>
                 {divisions.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
               </select>
@@ -210,25 +220,34 @@ function GroupFormModal({ group, onClose, onSaved }: { group?: Group | null; onC
             {level !== 'Division' && (
               <div>
                 <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">District *</label>
-                <select value={districtId} onChange={(e) => { setDistrictId(e.target.value); setUpazilaId(''); setUnionId(''); }} disabled={!divisionId} className={inputClass + ' disabled:opacity-50'}>
+                <select value={districtId} onChange={(e) => { setDistrictId(e.target.value); setUpazilaId(''); setThanaId(''); setUnionId(''); }} disabled={!divisionId} className={inputClass + ' disabled:opacity-50'}>
                   <option value="">Select District</option>
                   {districts.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
                 </select>
               </div>
             )}
-            {(level === 'Upazila' || level === 'Union') && (
+            {(level === 'Upazila' || level === 'Thana' || level === 'Union') && (
               <div>
                 <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Upazila *</label>
-                <select value={upazilaId} onChange={(e) => { setUpazilaId(e.target.value); setUnionId(''); }} disabled={!districtId} className={inputClass + ' disabled:opacity-50'}>
+                <select value={upazilaId} onChange={(e) => { setUpazilaId(e.target.value); setThanaId(''); setUnionId(''); }} disabled={!districtId} className={inputClass + ' disabled:opacity-50'}>
                   <option value="">Select Upazila</option>
                   {upazilas.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
+                </select>
+              </div>
+            )}
+            {(level === 'Thana' || level === 'Union') && (
+              <div>
+                <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Thana *</label>
+                <select value={thanaId} onChange={(e) => { setThanaId(e.target.value); setUnionId(''); }} disabled={!upazilaId} className={inputClass + ' disabled:opacity-50'}>
+                  <option value="">Select Thana</option>
+                  {thanas.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
                 </select>
               </div>
             )}
             {level === 'Union' && (
               <div>
                 <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Union *</label>
-                <select value={unionId} onChange={(e) => setUnionId(e.target.value)} disabled={!upazilaId} className={inputClass + ' disabled:opacity-50'}>
+                <select value={unionId} onChange={(e) => setUnionId(e.target.value)} disabled={!thanaId} className={inputClass + ' disabled:opacity-50'}>
                   <option value="">Select Union</option>
                   {unions.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
                 </select>
@@ -381,6 +400,7 @@ function GroupsPageInner() {
     division: sp.get('division') ?? '',
     district: sp.get('district') ?? '',
     upazila: sp.get('upazila') ?? '',
+    thana: sp.get('thana') ?? '',
     union: sp.get('union') ?? '',
     wardId: sp.get('wardId') ?? '',
     category: sp.get('category') ?? '',
@@ -407,6 +427,7 @@ function GroupsPageInner() {
   const [divisions, setDivisions] = useState<NamedRef[]>([]);
   const [districts, setDistricts] = useState<NamedRef[]>([]);
   const [upazilas, setUpazilas] = useState<NamedRef[]>([]);
+  const [thanas, setThanas] = useState<NamedRef[]>([]);
   const [unions, setUnions] = useState<NamedRef[]>([]);
   const [wards, setWards] = useState<{ _id: string; title: string }[]>([]);
 
@@ -433,10 +454,15 @@ function GroupsPageInner() {
       .then((r) => setUpazilas(r.data.data.areas)).catch(() => {});
   }, [filters.district]);
   useEffect(() => {
-    if (!filters.upazila) { setUnions([]); return; }
-    adminAreaService.getAll({ type: 'Union', parentId: filters.upazila, limit: '500' })
-      .then((r) => setUnions(r.data.data.areas)).catch(() => {});
+    if (!filters.upazila) { setThanas([]); return; }
+    adminAreaService.getAll({ type: 'Thana', parentId: filters.upazila, limit: '300' })
+      .then((r) => setThanas(r.data.data.areas)).catch(() => {});
   }, [filters.upazila]);
+  useEffect(() => {
+    if (!filters.thana) { setUnions([]); return; }
+    adminAreaService.getAll({ type: 'Union', parentId: filters.thana, limit: '500' })
+      .then((r) => setUnions(r.data.data.areas)).catch(() => {});
+  }, [filters.thana]);
 
   const fetchGroups = useCallback(async () => {
     setLoading(true);
@@ -447,6 +473,7 @@ function GroupsPageInner() {
       if (filters.division) params.division = filters.division;
       if (filters.district) params.district = filters.district;
       if (filters.upazila) params.upazila = filters.upazila;
+      if (filters.thana) params.thana = filters.thana;
       if (filters.union) params.union = filters.union;
       if (filters.wardId) params.wardId = filters.wardId;
       if (filters.category) params.category = filters.category;
@@ -480,22 +507,23 @@ function GroupsPageInner() {
     setFilters((prev) => {
       const next = { ...prev, [key]: value };
       // Clear descendants when an ancestor changes
-      if (key === 'division') { next.district = ''; next.upazila = ''; next.union = ''; }
-      if (key === 'district') { next.upazila = ''; next.union = ''; }
-      if (key === 'upazila') { next.union = ''; }
+      if (key === 'division') { next.district = ''; next.upazila = ''; next.thana = ''; next.union = ''; }
+      if (key === 'district') { next.upazila = ''; next.thana = ''; next.union = ''; }
+      if (key === 'upazila') { next.thana = ''; next.union = ''; }
+      if (key === 'thana') { next.union = ''; }
       return next;
     });
   };
 
   const clearFilters = () => {
     setPage(1);
-    setFilters({ level: '', division: '', district: '', upazila: '', union: '', wardId: '', category: '' });
+    setFilters({ level: '', division: '', district: '', upazila: '', thana: '', union: '', wardId: '', category: '' });
   };
 
-  const hasFilter = !!(filters.level || filters.division || filters.district || filters.upazila || filters.union || filters.wardId || filters.category);
+  const hasFilter = !!(filters.level || filters.division || filters.district || filters.upazila || filters.thana || filters.union || filters.wardId || filters.category);
 
   const groupAreaLabel = (g: Group) => {
-    const parts = [g.division?.name, g.district?.name, g.upazila?.name, g.union?.name, g.ward?.title].filter(Boolean);
+    const parts = [g.division?.name, g.district?.name, g.upazila?.name, g.thana?.name, g.union?.name, g.ward?.title].filter(Boolean);
     return parts.join(' › ');
   };
 
@@ -540,7 +568,7 @@ function GroupsPageInner() {
             </button>
           )}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-2">
           <select value={filters.level} onChange={(e) => updateFilter('level', e.target.value)} className={selectClass}>
             <option value="">All levels</option>
             {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
@@ -561,7 +589,11 @@ function GroupsPageInner() {
             <option value="">All upazilas</option>
             {upazilas.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
           </select>
-          <select value={filters.union} onChange={(e) => updateFilter('union', e.target.value)} disabled={!filters.upazila} className={selectClass + ' disabled:opacity-50'}>
+          <select value={filters.thana} onChange={(e) => updateFilter('thana', e.target.value)} disabled={!filters.upazila} className={selectClass + ' disabled:opacity-50'}>
+            <option value="">All thanas</option>
+            {thanas.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
+          </select>
+          <select value={filters.union} onChange={(e) => updateFilter('union', e.target.value)} disabled={!filters.thana} className={selectClass + ' disabled:opacity-50'}>
             <option value="">All unions</option>
             {unions.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
           </select>

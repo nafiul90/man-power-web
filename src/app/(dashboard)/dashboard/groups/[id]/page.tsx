@@ -119,7 +119,7 @@ export default function GroupDetailsPage() {
 
   const { notification, notify } = useNotification();
 
-  const GEO_ADMIN_ROLES = ['District Admin', 'Upazila Admin', 'Union Admin', 'Ward Admin'];
+  const GEO_ADMIN_ROLES = ['Division Admin', 'District Admin', 'Upazila Admin', 'Thana Admin', 'Union Admin', 'Ward Admin'];
   const canManage = ['Super Admin', 'Org Owner', 'Manager', ...GEO_ADMIN_ROLES].includes(authUser?.role ?? '');
   const canUpdateStatus = ['Org Owner', 'Manager', 'Instructor', 'Team Leader', 'Secretary', ...GEO_ADMIN_ROLES].includes(authUser?.role ?? '');
   const canRate = ['Org Owner', 'Manager', 'Instructor', 'Team Leader', 'Secretary'].includes(authUser?.role ?? '');
