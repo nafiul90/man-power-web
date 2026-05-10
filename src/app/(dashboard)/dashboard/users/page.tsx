@@ -158,9 +158,14 @@ export default function UsersPage() {
   };
 
   const isSuperAdmin = currentUser?.role === 'Super Admin';
-  const canManage = ['Super Admin', 'Org Owner'].includes(currentUser?.role || '');
-  const RATER_ROLES = ['Super Admin', 'Org Owner', 'Manager', 'District Admin', 'Upazila Admin', 'Union Admin', 'Ward Admin'];
+  // Roles that can edit/change-password existing users (mirrors backend manageRoles).
+  const MANAGE_ROLES = ['Super Admin', 'Org Owner', 'Manager', 'Division Admin', 'District Admin', 'Upazila Admin', 'Thana Admin', 'Union Admin', 'Ward Admin'];
+  // Roles that can create users (mirrors backend createRoles — Team Leader/Secretary may create Members).
+  const CREATE_ROLES = [...MANAGE_ROLES, 'Team Leader', 'Secretary'];
+  const RATER_ROLES = ['Super Admin', 'Org Owner', 'Manager', 'Division Admin', 'District Admin', 'Upazila Admin', 'Thana Admin', 'Union Admin', 'Ward Admin'];
   const RATEABLE_ROLES = ['Member', 'Team Leader', 'Secretary', 'Instructor'];
+  const canManage = MANAGE_ROLES.includes(currentUser?.role || '');
+  const canCreate = CREATE_ROLES.includes(currentUser?.role || '');
   const canRateUsers = RATER_ROLES.includes(currentUser?.role || '');
 
   return (
@@ -176,7 +181,7 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold text-[var(--foreground)]">Users</h1>
           <p className="text-[var(--muted)] text-sm">{total} total users</p>
         </div>
-        {canManage && (
+        {canCreate && (
           <button onClick={() => openModal('create')} className="flex items-center gap-2 px-4 py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white rounded-lg font-medium text-sm transition-all shadow-sm">
             <Plus className="w-4 h-4" /> Add User
           </button>
