@@ -15,11 +15,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AgriNGO | Agriculture NGO Management System",
+  title: "Man Power | Agriculture NGO Management System",
   description: "Comprehensive management system for agriculture-focused NGOs",
-  applicationName: "AgriNGO",
+  applicationName: "Man Power",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "AgriNGO" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Man Power" },
   icons: {
     icon: [
       { url: "/favicon.ico" },
