@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Man Power | Agriculture NGO Management System",
-  description: "Comprehensive management system for agriculture-focused NGOs",
+  title: "Man Power | People Management System",
+  description: "Comprehensive management system for man power development and deployment.",
   applicationName: "Man Power",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Man Power" },
