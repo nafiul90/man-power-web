@@ -22,10 +22,10 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Man Power" },
   icons: {
     icon: [
-      { url: "/favicon.ico" },
-      { url: "/icons/icon.svg", type: "image/svg+xml" },
+      { url: "/bnp-logo.png" },
+      { url: "/icons/bnp-logo.png", type: "image/png" },
     ],
-    apple: "/favicon.ico",
+    apple: "/bnp-logo.png",
   },
 };
 

@@ -13,15 +13,15 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#2d6a4f",
     icons: [
       {
-        src: "/icons/icon.svg",
+        src: "/icons/bnp-logo.png",
         sizes: "any",
-        type: "image/svg+xml",
+        type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icons/icon.svg",
+        src: "/icons/bnp-logo.png",
         sizes: "any",
-        type: "image/svg+xml",
+        type: "image/png",
         purpose: "maskable",
       },
     ],
