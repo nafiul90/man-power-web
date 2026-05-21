@@ -15,17 +15,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Man Power | People Management System",
+  title: "BNP স্বাবলম্বী কর্মী | People Management System",
   description: "Comprehensive management system for man power development and deployment.",
-  applicationName: "Man Power",
+  applicationName: "BNP স্বাবলম্বী কর্মী",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Man Power" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "BNP স্বাবলম্বী কর্মী" },
   icons: {
     icon: [
-      { url: "/bnp-logo.png" },
+      { url: "/icons/bnp-logo.png" },
       { url: "/icons/bnp-logo.png", type: "image/png" },
     ],
-    apple: "/bnp-logo.png",
+    apple: "/icons/bnp-logo.png",
   },
 };
 

@@ -9,6 +9,7 @@ import {
 import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface NavItem {
   href: string;
@@ -335,13 +336,13 @@ export function Sidebar() {
       <div className="flex items-center justify-between p-4 border-b border-[#2d6a4f]">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <Leaf className="w-6 h-6 text-[#74c69d]" />
+            <Image src="/icons/bnp-logo.png" alt="Logo" width={32} height={32} className="rounded-full" />
             <span className="font-bold text-lg">
-              <span className="text-[#74c69d]">Man</span>Power
+              <span className="text-[#74c69d]">স্বাবলম্বী</span>কর্মী
             </span>
           </div>
         )}
-        {collapsed && <Leaf className="w-6 h-6 text-[#74c69d] mx-auto" />}
+        {collapsed && <Image src="/icons/bnp-logo.png" alt="Logo" width={32} height={32} className="rounded-full" />}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="ml-auto p-1 rounded hover:bg-[#2d6a4f] transition-colors"
