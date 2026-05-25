@@ -8,6 +8,7 @@ import { Eye, EyeOff, Leaf, Sprout } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/api";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import Image from "next/image";
 
 const loginSchema = z.object({
   phone: z.string().min(1, "Phone number is required"),
@@ -63,11 +64,12 @@ export default function LoginPage() {
         </div>
         <div className="relative z-10 text-center text-white">
           <div className="flex items-center justify-center gap-3 mb-8">
-            <Sprout className="w-16 h-16 text-[#74c69d]" />
+            {/* <Sprout className="w-16 h-16 text-[#74c69d]" /> */}
+            <Image src="/icons/bnp-logo.png" alt="BNP Logo" width={64} height={64} />
           </div>
-          <h1 className="text-4xl font-bold text-[#74c69d] mb-3">Man Power</h1>
+          <h1 className="text-4xl font-bold text-[#74c69d] mb-3">BNP স্বাবলম্বী কর্মী</h1>
           <p className="text-xl text-[#b7e4c7] mb-8">
-            People People Management System
+            People Management System
           </p>
           <div className="space-y-4 text-left max-w-xs">
             {[
@@ -95,9 +97,10 @@ export default function LoginPage() {
         </div>
         <div className="w-full max-w-md">
           <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <Sprout className="w-8 h-8 text-[var(--primary)]" />
+            {/* <Sprout className="w-8 h-8 text-[var(--primary)]" /> */}
+            <Image src= "/icons/bnp-logo.png" alt="BNP Logo" width={64} height={64} />
             <span className="text-2xl font-bold text-[var(--primary)]">
-              Man Power
+              BNP স্বাবলম্বী কর্মী
             </span>
           </div>
 
